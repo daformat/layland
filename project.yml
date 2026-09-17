@@ -1,0 +1,112 @@
+name: Layland
+options:
+  bundleIdPrefix: com.matjouhet
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    DEVELOPMENT_TEAM: 72SRWBKE32
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "Developer ID Application"
+    ENABLE_HARDENED_RUNTIME: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    SWIFT_STRICT_CONCURRENCY: complete
+    DEAD_CODE_STRIPPING: YES
+  configs:
+    # Hardened runtime blocks loading the test bundle into the app; only needed for shipping.
+    Debug:
+      ENABLE_HARDENED_RUNTIME: NO
+
+targets:
+  Layland:
+    type: application
+    platform: macOS
+    sources:
+      - path: Layland
+    info:
+      path: Layland/App/Info.plist
+      properties:
+        CFBundleName: Layland
+        CFBundleDisplayName: Layland
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        LSApplicationCategoryType: public.app-category.utilities
+        NSHumanReadableCopyright: "© 2026 Mathieu Jouhet"
+        NSPrincipalClass: NSApplication
+        NSDesktopFolderUsageDescription: Layland measures the size of files in your Desktop folder.
+        NSDocumentsFolderUsageDescription: Layland measures the size of files in your Documents folder.
+        NSDownloadsFolderUsageDescription: Layland measures the size of files in your Downloads folder.
+        NSRemovableVolumesUsageDescription: Layland measures the size of files on removable volumes.
+        NSNetworkVolumesUsageDescription: Layland measures the size of files on network volumes.
+        NSFileProviderDomainUsageDescription: Layland measures the size of files in cloud-synced folders.
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Layland Scan
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Owner
+            LSItemContentTypes: [com.matjouhet.layland.scan]
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: com.matjouhet.layland.scan
+            UTTypeDescription: Layland Scan
+            UTTypeConformsTo: [public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [layland]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.matjouhet.Layland
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_PREVIEWS: YES
+        SWIFT_EMIT_LOC_STRINGS: YES
+
+  layland-bench:
+    type: tool
+    platform: macOS
+    sources:
+      - path: Layland/Core
+      - path: Bench
+    settings:
+      base:
+        PRODUCT_NAME: layland-bench
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_HARDENED_RUNTIME: NO
+        # The benchmark exists to measure the scanner; always build it optimized.
+        SWIFT_OPTIMIZATION_LEVEL: "-O"
+
+  LaylandTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: LaylandTests
+    dependencies:
+      - target: Layland
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  Layland:
+    build:
+      targets:
+        Layland: all
+        LaylandTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - LaylandTests
+    profile:
+      config: Release
+    archive:
+      config: Release
+  layland-bench:
+    build:
+      targets:
+        layland-bench: all
+    run:
+      config: Release
