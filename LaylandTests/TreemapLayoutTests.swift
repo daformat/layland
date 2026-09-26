@@ -197,3 +197,15 @@ struct ColorModeTests {
         #expect(!zoomed.cells.contains { $0.node < 0 })
     }
 }
+
+struct AgeRampTests {
+    @Test("every palette yields a full age ramp, and greys fall back to the default")
+    func ramps() {
+        for scheme in PaletteScheme.allCases {
+            let ramp = TreemapPalette.ageRamp(from: TreemapPalette.presetColors[scheme]!)
+            #expect(ramp.count == ModifiedBucket.count)
+            #expect(Set(ramp).count > 3, "\(scheme) ramp is too flat")
+        }
+        #expect(TreemapPalette.ageRamp(from: Array(repeating: 0x808080, count: 20)) == TreemapPalette.modifiedColors)
+    }
+}

@@ -78,6 +78,7 @@ struct TreemapPalette: Sendable {
     static let slotCount = 64
 
     /// Age colours for `ColorMode.modified`, hot (recent) to cool (old), one per `ModifiedBucket`.
+    /// The fallback when a palette has too few saturated colours to build its own ramp.
     static let modifiedColors: [UInt32] = [
         0xFF4D4D, 0xFF8A3D, 0xFFC13D, 0xE4E04A, 0x9ED65A, 0x4FC7A0, 0x3FA3D6, 0x4D6FD6, 0x6C5CB8,
     ]
@@ -133,7 +134,7 @@ struct TreemapPalette: Sendable {
         let source: [UInt32]
         switch spec.mode {
         case .fileType: source = spec.colors.count == Self.fileSlotCount ? spec.colors : Self.presetColors[PaletteScheme.fallback]!
-        case .modified: source = Self.modifiedColors
+        case .modified: source = Self.ageRamp(from: spec.colors)
         }
         // The renderer keeps flat areas at the palette colour; dim slightly on dark backgrounds.
         let lift: Float = dark ? 0.92 : 1.0
@@ -149,6 +150,51 @@ struct TreemapPalette: Sendable {
         colors[Int(Self.otherSpaceSlot)] = dark ? SIMD3(0.215, 0.205, 0.195) : SIMD3(0.800, 0.790, 0.775)
         self.colors = colors
         background = SIMD3(repeating: dark ? 0.12 : 0.93)
+    }
+
+    /// An age ramp in a palette's own style. Palettes are categorical, so they carry no order;
+    /// hue gives one that reads as hot to cool: the palette's saturated colours are sorted from
+    /// red through yellow, green and blue to violet, and `ModifiedBucket.count` steps are
+    /// sampled evenly along that gradient (interpolated in linear light). Magentas and pinks
+    /// sit where the hue circle closes back on red, so they are left out: the oldest files
+    /// must not come back round to the colour of the newest.
+    static func ageRamp(from palette: [UInt32]) -> [UInt32] {
+        struct Stop { var hue: Float; var rgb: SIMD3<Float> }
+        var stops: [Stop] = []
+        for value in palette {
+            let rgb = SIMD3<Float>(Float((value >> 16) & 0xFF), Float((value >> 8) & 0xFF), Float(value & 0xFF)) / 255
+            let high = rgb.max(), low = rgb.min()
+            // Greys and near-greys say nothing about hue.
+            guard high > 0, (high - low) / high >= 0.25 else { continue }
+            let delta = high - low
+            var hue: Float
+            if high == rgb.x { hue = ((rgb.y - rgb.z) / delta).truncatingRemainder(dividingBy: 6) }
+            else if high == rgb.y { hue = (rgb.z - rgb.x) / delta + 2 }
+            else { hue = (rgb.x - rgb.y) / delta + 4 }
+            hue = (hue * 60 + 360).truncatingRemainder(dividingBy: 360)
+            // The ramp runs from 340° (red, counting crimson) round to 290° (violet).
+            let position = (hue + 20).truncatingRemainder(dividingBy: 360)
+            guard position <= 310 else { continue }
+            stops.append(Stop(hue: position, rgb: rgb))
+        }
+        stops.sort { $0.hue < $1.hue }
+        // Colours of nearly the same hue would make flat stretches; keep the first of each.
+        stops = stops.reduce(into: []) { kept, stop in
+            if let last = kept.last, stop.hue - last.hue < 12 { return }
+            kept.append(stop)
+        }
+        let count = modifiedColors.count
+        guard stops.count >= 3 else { return modifiedColors }
+        func linear(_ c: SIMD3<Float>) -> SIMD3<Float> { SIMD3(pow(c.x, 2.2), pow(c.y, 2.2), pow(c.z, 2.2)) }
+        return (0 ..< count).map { index in
+            let position = Float(index) / Float(count - 1) * Float(stops.count - 1)
+            let lower = min(Int(position), stops.count - 2)
+            let t = position - Float(lower)
+            let mixed = linear(stops[lower].rgb) * (1 - t) + linear(stops[lower + 1].rgb) * t
+            let rgb = SIMD3(pow(mixed.x, 1 / 2.2), pow(mixed.y, 1 / 2.2), pow(mixed.z, 1 / 2.2))
+            let bytes = (rgb * 255).rounded(.toNearestOrAwayFromZero)
+            return UInt32(bytes.x) << 16 | UInt32(bytes.y) << 8 | UInt32(bytes.z)
+        }
     }
 
     func color(_ slot: Int32) -> SIMD3<Float> {
