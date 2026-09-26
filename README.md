@@ -1,3 +1,5 @@
+<img src="docs/og-image.jpeg" alt="See what's filling your Mac. In seconds, not minutes. Layland's window showing a dev folder as a colorful cushion treemap." width="100%">
+
 # Layland
 
 A macOS disk-usage treemap in the spirit of [GrandPerspective](https://grandperspectiv.sourceforge.net),
