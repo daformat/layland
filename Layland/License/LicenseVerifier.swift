@@ -6,8 +6,7 @@ import Foundation
 
 struct LicenseVerifier: Sendable {
     /// Gumroad's id for the product: public (it is in every buy link), so compiled in.
-    /// TODO: replace with the Layland product's id from the Gumroad dashboard.
-    static let productID = "LAYLAND_GUMROAD_PRODUCT_ID"
+    static let productID = "ybsLtf7gh3y_bgEoT33-zQ=="
     static let endpoint = URL(string: "https://api.gumroad.com/v2/licenses/verify")!
 
     enum Result: Sendable {

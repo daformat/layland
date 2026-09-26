@@ -10,8 +10,7 @@ import os
 @Observable
 final class Licensing {
     /// Where buyers go, and where they find a key they already bought.
-    /// TODO: point these at the Layland product on Gumroad (or redirects on the site).
-    static let buyURL = URL(string: "https://gumroad.com/l/layland")!
+    static let buyURL = URL(string: "https://csslabs.gumroad.com/l/layland-app")!
     static let libraryURL = URL(string: "https://app.gumroad.com/library")!
 
     private(set) var record: LicenseRecord
@@ -46,7 +45,13 @@ final class Licensing {
         return record.entitlement(now: Date())
     }
 
-    var isUnlocked: Bool { entitlement.isUnlocked }
+    var isUnlocked: Bool {
+        #if DEBUG
+        // For screenshots and testing the full app without a key; compiled out of releases.
+        if ProcessInfo.processInfo.environment["LAYLAND_UNLOCKED"] == "1" { return true }
+        #endif
+        return entitlement.isUnlocked
+    }
 
     private func evaluate() {
         record.observe(now: Date())
