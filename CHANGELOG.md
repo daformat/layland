@@ -4,7 +4,7 @@ Every released version of Layland, newest first. Dates are the release commit's.
 Versions are `MARKETING_VERSION` in `project.yml`, which is what the About panel and
 the DMG name show.
 
-## 0.1.0 · unreleased
+## 1.0.0 · 2026-09-26
 
 - **First release.** A disk-usage treemap built to scan fast: a parallel scanner,
   a cushion treemap drawn off the main thread, color by file type or age,
