@@ -87,10 +87,26 @@ xcodegen generate >/dev/null
 # --timestamp: notarization requires a secure timestamp on every signature, which a plain
 # `xcodebuild build` leaves out.
 xcodebuild -scheme Layland -configuration Release -destination "generic/platform=macOS" -derivedDataPath "$DERIVED" \
-  OTHER_CODE_SIGN_FLAGS="--timestamp" build | grep -E "error|warning: .*Layland|BUILD" || true
+  OTHER_CODE_SIGN_FLAGS="--timestamp" CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO build \
+  | grep -E "error|warning: .*Layland|BUILD" || true
 [ -d "$BUILT_APP" ] || { echo "!! build failed" >&2; exit 1; }
 rm -rf "$OUT"; mkdir -p "$OUT"
 ditto "$BUILT_APP" "$APP"
+
+# Signed again here, inside out, because Xcode's copy of Sparkle re-signs only the framework
+# and leaves the executables nested in it (Autoupdate, Updater.app, the XPC services) with
+# Sparkle's own signatures, which notarization rejects. The XPC services exist for sandboxed
+# apps; this one is not, so they go. The app itself needs no entitlements, and re-signing it
+# without any also drops the get-task-allow Xcode adds for debugging.
+echo "==> signing"
+SIGN=(codesign --force --timestamp --options runtime --sign "Developer ID Application")
+SPARKLE="$APP/Contents/Frameworks/Sparkle.framework"
+rm -rf "$SPARKLE/Versions/B/XPCServices" "$SPARKLE/XPCServices"
+for nested in "$SPARKLE/Versions/B/Autoupdate" "$SPARKLE/Versions/B/Updater.app"; do
+  "${SIGN[@]}" "$nested"
+done
+"${SIGN[@]}" "$SPARKLE"
+"${SIGN[@]}" "$APP"
 
 # Two traps, both of which make a correctly signed app look unsigned: -dvv, not -dv (the
 # Authority lines only appear at the second v), and captured, not piped (grep -q exits at
@@ -103,6 +119,18 @@ if ! grep -q "Authority=Developer ID Application" <<<"$SIG_INFO"; then
 fi
 grep -q "^Timestamp=" <<<"$SIG_INFO" || { echo "!! $APP has no secure timestamp — notarization would refuse it" >&2; exit 1; }
 codesign --verify --strict --deep "$APP"
+# What notarization checks, checked here first: every executable in the bundle signed with
+# the Developer ID and timestamped, and no debugging entitlement.
+while IFS= read -r -d '' binary; do
+  file "$binary" | grep -q "Mach-O" || continue
+  info=$(codesign -dvv "$binary" 2>&1 || true)
+  if ! grep -q "Authority=Developer ID Application" <<<"$info" || ! grep -q "^Timestamp=" <<<"$info"; then
+    echo "!! ${binary#$OUT/} is not signed with a timestamped Developer ID" >&2; exit 1
+  fi
+done < <(find "$APP" -type f -perm -u+x -print0)
+if codesign -d --entitlements - "$APP" 2>/dev/null | grep -q "get-task-allow"; then
+  echo "!! $APP carries the get-task-allow entitlement — notarization would refuse it" >&2; exit 1
+fi
 [ "$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$APP/Contents/Info.plist")" = "$BUILD" ] \
   || { echo "!! the app's CFBundleVersion is not $BUILD" >&2; exit 1; }
 
@@ -185,7 +213,18 @@ fi
 
 if [ "$DRYRUN" = no ]; then
   echo "==> notarizing (a few minutes)"
-  xcrun notarytool submit "$DMG" --keychain-profile "$PROFILE" --wait
+  # --wait returns normally even when Apple rejects the submission, so the verdict is read
+  # from the output: anything but Accepted stops here, with Apple's log, rather than at a
+  # stapling error that says nothing about why.
+  NOTARY=$(xcrun notarytool submit "$DMG" --keychain-profile "$PROFILE" --wait --output-format json)
+  STATUS=$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("status",""))' "$NOTARY")
+  SUBMISSION=$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("id",""))' "$NOTARY")
+  echo "    $STATUS ($SUBMISSION)"
+  if [ "$STATUS" != "Accepted" ]; then
+    echo "!! notarization $STATUS — Apple's log:" >&2
+    xcrun notarytool log "$SUBMISSION" --keychain-profile "$PROFILE" >&2 || true
+    exit 1
+  fi
   echo "==> stapling"
   xcrun stapler staple "$DMG"
   echo "==> verifying"
