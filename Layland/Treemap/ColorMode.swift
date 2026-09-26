@@ -1,6 +1,6 @@
 import Foundation
 
-/// What a cell's colour encodes.
+/// What a cell's color encodes.
 enum ColorMode: String, CaseIterable, Identifiable, Sendable {
     case fileType
     case modified

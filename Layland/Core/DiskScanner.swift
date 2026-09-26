@@ -54,7 +54,7 @@ public struct ScanStatistics: Sendable, Codable {
 
 public struct ScanResult: Sendable {
     public var tree: FileTree
-    /// When the scan finished; the reference for age-based colouring.
+    /// When the scan finished; the reference for age-based coloring.
     public var date: Date
     public var duration: TimeInterval
     public var statistics: ScanStatistics

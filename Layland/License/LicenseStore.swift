@@ -1,4 +1,4 @@
-// Where the licence record lives. Adapted from Subtitles.
+// Where the license record lives. Adapted from Subtitles.
 //
 // The whole record is JSON in the defaults (readable with `defaults read`); the key is also
 // a generic-password item in the login Keychain, which outlives a reinstall.

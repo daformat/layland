@@ -1,6 +1,6 @@
 import Foundation
 
-/// The built-in colour schemes.
+/// The built-in color schemes.
 enum PaletteScheme: String, CaseIterable, Identifiable, Sendable {
     case vivid, pastel, nord, retro, jewel
 
@@ -56,18 +56,18 @@ enum PaletteSelection: Hashable, Sendable {
     }
 }
 
-/// The resolved colours of a palette, independent of light/dark appearance.
+/// The resolved colors of a palette, independent of light/dark appearance.
 struct PaletteSpec: Equatable, Sendable {
     var mode: ColorMode
     /// One 0xRRGGBB value per `FileCategory` slot (used in `.fileType` mode).
     var colors: [UInt32]
 }
 
-/// Colours for the treemap as plain RGB triples (0…1), safe to use from any thread.
+/// Colors for the treemap as plain RGB triples (0…1), safe to use from any thread.
 ///
-/// Each scheme lists one colour per `FileCategory` slot: the 11 named families first (no
+/// Each scheme lists one color per `FileCategory` slot: the 11 named families first (no
 /// extension, images, video, audio, archives, documents, code, binaries, data, fonts, app
-/// resources), then 9 colours shared by hashed unknown extensions.
+/// resources), then 9 colors shared by hashed unknown extensions.
 struct TreemapPalette: Sendable {
     static let fileSlotCount = FileCategory.slotCount
 
@@ -77,17 +77,17 @@ struct TreemapPalette: Sendable {
     static let otherSpaceSlot: Int32 = 63
     static let slotCount = 64
 
-    /// Age colours for `ColorMode.modified`, hot (recent) to cool (old), one per `ModifiedBucket`.
-    /// The fallback when a palette has too few saturated colours to build its own ramp.
+    /// Age colors for `ColorMode.modified`, hot (recent) to cool (old), one per `ModifiedBucket`.
+    /// The fallback when a palette has too few saturated colors to build its own ramp.
     static let modifiedColors: [UInt32] = [
         0xFF4D4D, 0xFF8A3D, 0xFFC13D, 0xE4E04A, 0x9ED65A, 0x4FC7A0, 0x3FA3D6, 0x4D6FD6, 0x6C5CB8,
     ]
 
-    /// Indexed by colour slot (see the slot constants above).
+    /// Indexed by color slot (see the slot constants above).
     let colors: [SIMD3<Float>]
     let background: SIMD3<Float>
 
-    /// Preset colours per scheme, one per slot.
+    /// Preset colors per scheme, one per slot.
     static let presetColors: [PaletteScheme: [UInt32]] = [
         // HSB-generated: saturation 0.62, brightness 1.0.
         .vivid: [
@@ -136,7 +136,7 @@ struct TreemapPalette: Sendable {
         case .fileType: source = spec.colors.count == Self.fileSlotCount ? spec.colors : Self.presetColors[PaletteScheme.fallback]!
         case .modified: source = Self.ageRamp(from: spec.colors)
         }
-        // The renderer keeps flat areas at the palette colour; dim slightly on dark backgrounds.
+        // The renderer keeps flat areas at the palette color; dim slightly on dark backgrounds.
         let lift: Float = dark ? 0.92 : 1.0
         var colors = [SIMD3<Float>](repeating: SIMD3(repeating: 0.5), count: Self.slotCount)
         for (slot, value) in source.enumerated() {
@@ -153,18 +153,18 @@ struct TreemapPalette: Sendable {
     }
 
     /// An age ramp in a palette's own style. Palettes are categorical, so they carry no order;
-    /// hue gives one that reads as hot to cool: the palette's saturated colours are sorted from
+    /// hue gives one that reads as hot to cool: the palette's saturated colors are sorted from
     /// red through yellow, green and blue to violet, and `ModifiedBucket.count` steps are
     /// sampled evenly along that gradient (interpolated in linear light). Magentas and pinks
     /// sit where the hue circle closes back on red, so they are left out: the oldest files
-    /// must not come back round to the colour of the newest.
+    /// must not come back round to the color of the newest.
     static func ageRamp(from palette: [UInt32]) -> [UInt32] {
         struct Stop { var hue: Float; var rgb: SIMD3<Float> }
         var stops: [Stop] = []
         for value in palette {
             let rgb = SIMD3<Float>(Float((value >> 16) & 0xFF), Float((value >> 8) & 0xFF), Float(value & 0xFF)) / 255
             let high = rgb.max(), low = rgb.min()
-            // Greys and near-greys say nothing about hue.
+            // Grays and near-grays say nothing about hue.
             guard high > 0, (high - low) / high >= 0.25 else { continue }
             let delta = high - low
             var hue: Float
@@ -178,7 +178,7 @@ struct TreemapPalette: Sendable {
             stops.append(Stop(hue: position, rgb: rgb))
         }
         stops.sort { $0.hue < $1.hue }
-        // Colours of nearly the same hue would make flat stretches; keep the first of each.
+        // Colors of nearly the same hue would make flat stretches; keep the first of each.
         stops = stops.reduce(into: []) { kept, stop in
             if let last = kept.last, stop.hue - last.hue < 12 { return }
             kept.append(stop)
@@ -201,7 +201,7 @@ struct TreemapPalette: Sendable {
         colors[min(max(Int(slot), 0), colors.count - 1)]
     }
 
-    /// On-screen colour of a flat area of a cell (the renderer keeps it at the palette colour).
+    /// On-screen color of a flat area of a cell (the renderer keeps it at the palette color).
     func displayedColor(_ slot: Int32) -> SIMD3<Float> {
         color(slot)
     }

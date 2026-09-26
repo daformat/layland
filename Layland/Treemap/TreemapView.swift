@@ -395,8 +395,8 @@ final class TreemapView: NSView {
         }
     }
 
-    /// Moves the selection to the neighbouring cell in `direction`, probing just past the edge
-    /// of the current cell at its centre line. Very small neighbours may be skipped.
+    /// Moves the selection to the neighboring cell in `direction`, probing just past the edge
+    /// of the current cell at its center line. Very small neighbors may be skipped.
     func moveSelection(_ direction: Direction) {
         guard let current else { return }
         let layout = current.layout

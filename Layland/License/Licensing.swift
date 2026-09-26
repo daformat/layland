@@ -1,4 +1,4 @@
-// The licence as the app sees it: holds the record, keeps it saved, asks Gumroad when a key
+// The license as the app sees it: holds the record, keeps it saved, asks Gumroad when a key
 // needs asking about, and answers the one question the rest of the app has — is this copy
 // unlocked? What the free tier shows is decided in `ScanSession.isLocked`.
 

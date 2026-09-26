@@ -1,4 +1,4 @@
-// A Gumroad licence key, normalised.
+// A Gumroad license key, normalized.
 //
 // Gumroad issues keys as four groups of eight hex digits, upper case, joined
 // by hyphens: 4B1C2D3E-5F607182-93A4B5C6-D7E8F9A0. People paste them from a

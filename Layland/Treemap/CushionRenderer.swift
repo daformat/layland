@@ -2,7 +2,7 @@ import CoreGraphics
 import Dispatch
 import Foundation
 
-/// Rasterises a `TreemapLayout` with cushion shading straight into a pixel buffer.
+/// Rasterizes a `TreemapLayout` with cushion shading straight into a pixel buffer.
 ///
 /// Each leaf's surface is the sum of parabolic ridges of all its ancestors, so the surface
 /// gradient at a pixel is linear in x and y (the coefficients travel with the cell). Shading is
@@ -34,7 +34,7 @@ enum CushionRenderer {
         target.pixels.initialize(repeating: pack(palette.background), count: count)
 
         let light = lighting.direction / (lighting.direction * lighting.direction).sum().squareRoot()
-        // Shade of a flat (untilted) surface: normalising by it keeps flat areas at the palette colour.
+        // Shade of a flat (untilted) surface: normalizing by it keeps flat areas at the palette color.
         let flatShade = lighting.ambient + lighting.diffuse * light.z
         let cells = layout.cells
         let chunkSize = 1024
@@ -91,7 +91,7 @@ enum CushionRenderer {
 
     /// Highlights blend towards white. Shadows scale by √shade (≈ darkening in linear light) and
     /// let the weaker channels fall faster than the dominant one, like a multiply blend, so they
-    /// deepen in saturation instead of turning grey. `logRatio` is log(channel / max channel).
+    /// deepen in saturation instead of turning gray. `logRatio` is log(channel / max channel).
     @inline(__always)
     private static func shaded(_ color: SIMD3<Float>, logRatio: SIMD3<Float>, _ shade: Float) -> SIMD3<Float> {
         if shade >= 1 {

@@ -25,7 +25,7 @@ Targets:
 - **LaylandTests** – Swift Testing suite for the scanner, tree model and layout.
 
 Signing uses the Developer ID identity so the Full Disk Access grant survives rebuilds (ad-hoc
-signatures change per build and TCC silently stops honouring them). Change `DEVELOPMENT_TEAM` in
+signatures change per build and TCC silently stops honoring them). Change `DEVELOPMENT_TEAM` in
 `project.yml` or switch to `CODE_SIGN_IDENTITY: "-"` if you don't have one.
 
 ## Why it's fast
@@ -66,10 +66,10 @@ treemap clipped to a squircle concentric with the macOS icon shape); scale the r
 ## Rendering
 
 `Layland/Treemap`: squarified layout in device pixels (`TreemapLayout`), then **cushion shading**
-(van Wijk & van de Wetering) rasterised by a small parallel software renderer
+(van Wijk & van de Wetering) rasterized by a small parallel software renderer
 (`CushionRenderer`) – every leaf's surface is the sum of its ancestors' parabolic ridges, so
 folder nesting shows through the shading without borders. A 3.8 M-node tree lays out in ~50 ms
-and rasterises in ~5 ms, all on a background queue (`TreemapRenderer`, latest request wins); the
+and rasterizes in ~5 ms, all on a background queue (`TreemapRenderer`, latest request wins); the
 layer-backed `TreemapView` stretches the previous image on the GPU in the meantime, so resizing
 never blocks the main thread. Children are pre-sorted once per scan (`FileTree.orderedChildren`)
 and files are classified by extension during the scan (`FileCategory`), so layout never sorts or
@@ -78,14 +78,14 @@ allocates per file. Tune the look in `CushionShape` and `CushionRenderer.Lightin
 View menu: **Color By** (file type, or age since last modification in nine buckets — see
 `ColorMode.swift`), **Show Legend**, **Show Free Space** (adds the volume's free space and the
 space used outside the scanned folder as two extra cells, so the scan appears in proportion to
-the disk), **Color Palette** (six presets in `TreemapPalette.presetColors`, one hex colour per
+the disk), **Color Palette** (six presets in `TreemapPalette.presetColors`, one hex color per
 `FileCategory` slot, saved presets, and **Custom**), **Edit Custom Palette…** (a live editor; the
 main window shows `SampleTree` with every category while it is open), **Cushion Strength** (flat / subtle / normal / strong), and **Cell Margin** (an even
 gap between cells ≥ 12 px and around clusters of smaller ones).
 
 Item menu: **Quick Look** (⌘Y or space), **Reveal in Finder**, **Move to Trash**, **Select
 Enclosing Folder** (⌘[), **Select Largest Item Inside** (⌘]), **Next Search Result** (⌘G).
-Arrow keys walk the selection to the neighbouring cell. The toolbar search field matches file
+Arrow keys walk the selection to the neighboring cell. The toolbar search field matches file
 names (case-insensitive substring over the raw name bytes, ~50 ms for millions of files) and dims
 everything else; matches hidden inside collapsed folders light up the folder.
 
@@ -107,7 +107,7 @@ LaylandTests/     unit tests
 
 - Incremental rescans: persist the tree and use FSEvents (`sinceWhen:`) to re-list only the
   directories that changed – turns a 13 s rescan into a fraction of a second.
-- A "largest files" sidebar and a colour legend / filter by category.
+- A "largest files" sidebar and a color legend / filter by category.
 - App Store build: enable the sandbox and keep folder access through security-scoped bookmarks
   (folder selection already goes through `NSOpenPanel`).
 

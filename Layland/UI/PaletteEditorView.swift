@@ -69,7 +69,7 @@ struct PaletteEditorView: View {
                 .disabled(presetName.trimmingCharacters(in: .whitespaces).isEmpty)
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("The current colours will be added to View ▸ Color Palette under this name.")
+            Text("The current colors will be added to View ▸ Color Palette under this name.")
         }
     }
 

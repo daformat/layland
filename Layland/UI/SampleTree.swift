@@ -1,6 +1,6 @@
 import Foundation
 
-/// A synthetic tree that exercises every colour slot, shown while the palette editor is open.
+/// A synthetic tree that exercises every color slot, shown while the palette editor is open.
 ///
 /// Shaped like real data — categories of very different totals, log-normal file sizes with a
 /// long tail of small files, irregular nesting — but weighted so that even the smallest
@@ -99,7 +99,7 @@ enum SampleTree {
                 logicalSize: entry.size, allocatedSize: entry.size
             )
             node.category = entry.category
-            // Spread modification times over ~8 years so age colouring has something to show.
+            // Spread modification times over ~8 years so age coloring has something to show.
             var hash = UInt64(bitPattern: Int64(entry.size)) &* 0x9E37_79B9_7F4A_7C15
             hash ^= hash >> 29
             let daysAgo = Double(hash % 3000) * (hash % 3 == 0 ? 0.01 : 1)

@@ -1,7 +1,7 @@
 // Whether this copy is unlocked, and why. Adapted from Subtitles, minus its trial clock:
 // Layland's free tier never expires, it just shows less (see `ScanSession.isLocked`).
 //
-// Honour system by construction: anyone with `defaults write` can forge a record, and that
+// Honor system by construction: anyone with `defaults write` can forge a record, and that
 // is not worth defending against for an app this size. The checks keep an honest person
 // honest — a reinstall that would lose the key, a clock set wrong — and no more.
 

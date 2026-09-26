@@ -1,4 +1,4 @@
-// The one request the licence ever makes: the product id and the key, to Gumroad. At
+// The one request the license ever makes: the product id and the key, to Gumroad. At
 // activation with the uses counter incremented; every thirty days after with it held.
 // Nothing else leaves the machine — no email, no machine name, nothing about what was scanned.
 

@@ -2,7 +2,7 @@ import CoreGraphics
 import Foundation
 import os
 
-/// Runs layout + rasterisation off the main thread, one request at a time, always working on
+/// Runs layout + rasterization off the main thread, one request at a time, always working on
 /// the most recent request: requests that arrive while one is in flight replace each other, so a
 /// burst of resize events costs at most one wasted render.
 final class TreemapRenderer: @unchecked Sendable {

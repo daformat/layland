@@ -1,4 +1,4 @@
-// Gumroad's licence verification, as data: the request body the app sends, and what its
+// Gumroad's license verification, as data: the request body the app sends, and what its
 // answer means. Adapted from Subtitles.
 //
 // The endpoint is `POST https://api.gumroad.com/v2/licenses/verify`. It takes `product_id`
@@ -13,7 +13,7 @@
 
 import Foundation
 
-/// A definitive answer that a key no longer stands. Only these revoke a licence: anything
+/// A definitive answer that a key no longer stands. Only these revoke a license: anything
 /// else Gumroad says, or fails to say, leaves the record alone.
 enum Revocation: String, Codable, Equatable, Sendable, CaseIterable {
     case refunded

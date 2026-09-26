@@ -117,7 +117,7 @@ final class ScanSession {
         openLicenseWindow?()
     }
 
-    /// The licence changed (activated, removed, lapsed): redo what the free tier withheld.
+    /// The license changed (activated, removed, lapsed): redo what the free tier withheld.
     func licenseDidChange() {
         scheduleSearch()
     }
@@ -483,7 +483,7 @@ final class ScanSession {
         self.selection = largest
     }
 
-    /// Double-click behaviour: zoom into a directory, or into a file's parent.
+    /// Double-click behavior: zoom into a directory, or into a file's parent.
     func open(_ node: Int32) {
         guard let tree = displayedTree else { return }
         let target = tree[node].isDirectory ? node : tree[node].parent

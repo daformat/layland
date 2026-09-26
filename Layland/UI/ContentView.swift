@@ -166,7 +166,7 @@ struct WelcomeView: View {
     }
 }
 
-/// A regular button (so it sizes like its neighbours; a SwiftUI `Menu` won't stretch) that
+/// A regular button (so it sizes like its neighbors; a SwiftUI `Menu` won't stretch) that
 /// drops down a native menu of recently scanned folders.
 struct RecentFoldersButton: View {
     @Environment(ScanSession.self) private var session
@@ -589,7 +589,7 @@ struct StatusBar: View {
     }
 }
 
-/// Sidebar: colour legend for the current mode, plus the scan's key facts.
+/// Sidebar: color legend for the current mode, plus the scan's key facts.
 struct LegendSidebar: View {
     @Environment(ScanSession.self) private var session
     @Environment(\.colorScheme) private var colorScheme

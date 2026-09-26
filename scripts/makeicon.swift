@@ -40,25 +40,25 @@ func squarify(_ weights: [Double], in bounds: CGRect) -> [CGRect] {
     return rects
 }
 
-/// Colour schemes built from the app's Jewel palette, most saturated first (largest cells).
+/// Color schemes built from the app's Jewel palette, most saturated first (largest cells).
 let schemes: [String: [UInt32]] = [
     // Five hues, one each: the shipped icon.
     "jewel": [0xE0A030, 0x2B9EB3, 0x2E9E6B, 0xD64161, 0x3F72AF],
     // Monochrome: one hue, stepped in lightness.
     "mono-blue": [0x3F72AF, 0x6A95D0, 0x2B5288, 0x8FB2E0, 0x1E3B63],
     "mono-teal": [0x2B9EB3, 0x5BBDCD, 0x1D7585, 0x86D2DE, 0x14525D],
-    // Two colours: complementary pairs.
+    // Two colors: complementary pairs.
     "duo-blue-amber": [0xE0A030, 0x3F72AF, 0xEBBE6A, 0x6A95D0],
     "duo-teal-coral": [0xE07B39, 0x2B9EB3, 0xEB9F6E, 0x5BBDCD],
-    // Three colours.
+    // Three colors.
     "trio-cool": [0x2B9EB3, 0x3F72AF, 0x2E9E6B], // analogous
     "trio-triadic": [0xE0A030, 0x2E9E6B, 0xA26BC2], // 38° / 153° / 278°
-    "trio-split": [0xE0A030, 0x2B9EB3, 0x5B5FC7], // amber + the two neighbours of its complement
+    "trio-split": [0xE0A030, 0x2B9EB3, 0x5B5FC7], // amber + the two neighbors of its complement
     "trio-warm": [0xE0A030, 0xE07B39, 0xD64161], // analogous
 ]
 
-/// Walks the cells largest first, giving each the next colour of the scheme that no touching,
-/// already-coloured neighbour has (falls back to the plain cycle if every colour is taken).
+/// Walks the cells largest first, giving each the next color of the scheme that no touching,
+/// already-colored neighbor has (falls back to the plain cycle if every color is taken).
 func assignColors(_ rects: [CGRect], _ scheme: [UInt32]) -> [UInt32] {
     var result: [UInt32] = []
     for (index, rect) in rects.enumerated() {
@@ -72,7 +72,7 @@ func assignColors(_ rects: [CGRect], _ scheme: [UInt32]) -> [UInt32] {
 }
 
 /// Darkens like the app's cushion shadows: overall by √shade, with the weaker channels falling
-/// faster than the dominant one, so the colour deepens instead of greying.
+/// faster than the dominant one, so the color deepens instead of graying.
 func deepened(_ hex: UInt32, shade: Double) -> Color {
     let rgb = [Double((hex >> 16) & 0xFF), Double((hex >> 8) & 0xFF), Double(hex & 0xFF)].map { $0 / 255 }
     let peak = max(rgb.max()!, 1e-3)

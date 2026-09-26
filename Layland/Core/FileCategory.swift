@@ -2,7 +2,7 @@ import Foundation
 
 /// Coarse file classification by extension, computed once per file during the scan and stored
 /// in `FileNode.category`. Well-known families get fixed slots; any other extension is hashed
-/// into the remaining slots so files of one kind still share a colour.
+/// into the remaining slots so files of one kind still share a color.
 public enum FileCategory {
     public static let slotCount = 20
     public static let noExtension: UInt8 = 0

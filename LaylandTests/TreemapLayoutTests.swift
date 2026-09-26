@@ -124,7 +124,7 @@ struct TreemapLayoutTests {
         #expect(nestedCell.cushion != aCell.cushion)
         // Whether `nested` (10 bytes) gets a sliver or a real cell depends on which hard link of
         // file1 kept its size; either way the rule holds: a collapsed folder takes its largest
-        // file's colour (deep.txt → documents slot), an expanded one shows the file itself.
+        // file's color (deep.txt → documents slot), an expanded one shows the file itself.
         let deep = try #require(tree.node(at: "a/nested/deep.txt"))
         if nestedCell.isLeaf {
             #expect(nestedCell.colorSlot == 5)
@@ -157,7 +157,7 @@ struct ColorModeTests {
         #expect(TreemapPalette.legend(for: .modified).count == ModifiedBucket.count)
     }
 
-    @Test("modified mode colours leaves by age, file-type mode by category")
+    @Test("modified mode colors leaves by age, file-type mode by category")
     func colorSlots() throws {
         let fixture = try Fixture()
         defer { fixture.remove() }
@@ -199,7 +199,7 @@ struct ColorModeTests {
 }
 
 struct AgeRampTests {
-    @Test("every palette yields a full age ramp, and greys fall back to the default")
+    @Test("every palette yields a full age ramp, and grays fall back to the default")
     func ramps() {
         for scheme in PaletteScheme.allCases {
             let ramp = TreemapPalette.ageRamp(from: TreemapPalette.presetColors[scheme]!)

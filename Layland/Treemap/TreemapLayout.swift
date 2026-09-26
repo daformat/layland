@@ -181,8 +181,8 @@ struct TreemapLayout: Sendable {
         let rects = Squarify.layout(weights: items.map(\.weight), in: rect)
         for (item, raw) in zip(items, rects) {
             let child = item.node
-            // Snap to the pixel grid. Neighbours share edges, so rounding both ends the same way
-            // keeps the tiling gap-free; sub-pixel cells simply vanish into their neighbours.
+            // Snap to the pixel grid. Neighbors share edges, so rounding both ends the same way
+            // keeps the tiling gap-free; sub-pixel cells simply vanish into their neighbors.
             let x0 = raw.minX.rounded(), x1 = raw.maxX.rounded()
             let y0 = raw.minY.rounded(), y1 = raw.maxY.rounded()
             guard x1 > x0, y1 > y0 else { continue }
@@ -228,7 +228,7 @@ struct TreemapLayout: Sendable {
         return SIMD4(s1x, s2x, s1y, s2y)
     }
 
-    /// Colour of a leaf: a file's own category or age, or that of a collapsed directory's
+    /// Color of a leaf: a file's own category or age, or that of a collapsed directory's
     /// largest descendant.
     private func colorSlot(for index: Int32, tree: FileTree) -> Int32 {
         var current = index

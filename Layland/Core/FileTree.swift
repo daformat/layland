@@ -4,7 +4,7 @@ import Foundation
 public enum SizeMode: String, CaseIterable, Sendable, Identifiable {
     /// Logical file length (what `ls -l` reports).
     case logical
-    /// Blocks actually allocated on disk (honours APFS compression and sparse files).
+    /// Blocks actually allocated on disk (honors APFS compression and sparse files).
     case allocated
 
     public var id: String { rawValue }

@@ -107,11 +107,71 @@ codesign --verify --strict --deep "$APP"
   || { echo "!! the app's CFBundleVersion is not $BUILD" >&2; exit 1; }
 
 echo "==> packaging $DMG"
-mkdir -p "$STAGE"
+RWDMG="$OUT/Layland-rw.dmg"
+mkdir -p "$STAGE/.background"
 cp -R "$APP" "$STAGE/"
 # The drag-to-install target.
 ln -s /Applications "$STAGE/Applications"
-hdiutil create -volname "Layland" -srcfolder "$STAGE" -ov -format UDZO -imagekey zlib-level=9 "$DMG" >/dev/null
+swift tools/makedmgbg.swift "$STAGE/.background/background.tiff"
+
+# A volume of this name already mounted (a previous run that died before detaching) makes
+# hdiutil name the new one "Layland 1", and the layout below would then style the stale one.
+while read -r stale; do
+  [ -n "$stale" ] || continue
+  echo "    detaching stale volume: $stale"
+  hdiutil detach "$stale" -quiet -force 2>/dev/null || true
+done < <(mount | awk -F' on | \\(' '/\/Volumes\/Layland/ {print $2}')
+
+# Read-write first: the window layout lives in the volume's .DS_Store, which only Finder
+# writes, and only on a mounted writable image. The compressed image is converted from it.
+hdiutil create -volname "Layland" -srcfolder "$STAGE" -ov -format UDRW -fs HFS+ "$RWDMG" >/dev/null
+MOUNT=$(hdiutil attach "$RWDMG" -readwrite -noverify -noautoopen | tail -1 | awk -F'\t' '{print $NF}')
+trap 'hdiutil detach "$MOUNT" -quiet -force 2>/dev/null || true' EXIT
+VOLNAME=$(basename "$MOUNT")
+
+# Coordinates match tools/makedmgbg.swift, in AppleScript's space (points, origin at the
+# window's top left). Unquoted heredoc so it interpolates: no $, backslash or backtick in
+# the script, not even in its comments.
+if ! osascript <<APPLESCRIPT
+tell application "Finder"
+  tell disk "$VOLNAME"
+    open
+    set current view of container window to icon view
+    set toolbar visible of container window to false
+    set statusbar visible of container window to false
+    -- 428, not 400: the bounds include the title bar.
+    set the bounds of container window to {240, 130, 880, 558}
+    set opts to the icon view options of container window
+    set arrangement of opts to not arranged
+    set icon size of opts to 128
+    set text size of opts to 12
+    set background picture of opts to file ".background:background.tiff"
+    set position of item "Layland.app" of container window to {170, 180}
+    set position of item "Applications" of container window to {470, 180}
+    -- Re-asserted after the contents change, or Finder falls back to its default width.
+    set the bounds of container window to {240, 130, 880, 558}
+    update without registering applications
+    delay 1
+    -- Closing is what commits .DS_Store.
+    close
+  end tell
+end tell
+APPLESCRIPT
+then
+  echo "!! Finder refused the layout script (Apple event error)." >&2
+  echo "   Laying out a DMG window means driving Finder, which macOS gates behind Automation" >&2
+  echo "   permission: System Settings > Privacy & Security > Automation >" >&2
+  echo "   <your terminal> > Finder, then run this again." >&2
+  exit 1
+fi
+
+# Finder writes .DS_Store lazily; detaching before it lands loses the layout.
+sync
+sleep 2
+hdiutil detach "$MOUNT" -quiet
+trap - EXIT
+hdiutil convert "$RWDMG" -format UDZO -imagekey zlib-level=9 -o "$DMG" >/dev/null
+rm -f "$RWDMG"
 rm -rf "$STAGE"
 echo "    $(du -h "$DMG" | cut -f1)"
 # Signed too, so Gatekeeper has something to check before anything is mounted.
