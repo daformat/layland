@@ -9,9 +9,10 @@ import os
 @MainActor
 @Observable
 final class Licensing {
-    /// Where buyers go, and where they find a key they already bought.
-    static let buyURL = URL(string: "https://csslabs.gumroad.com/l/layland-app")!
-    static let libraryURL = URL(string: "https://app.gumroad.com/library")!
+    /// Where buyers go, and where they find a key they already bought: hops through the site
+    /// (its _redirects), so a change of store is one line there rather than a release.
+    static let buyURL = URL(string: "https://layland.app/buy")!
+    static let libraryURL = URL(string: "https://layland.app/key")!
 
     private(set) var record: LicenseRecord
     /// Bumped by the clock, so views reading `entitlement` notice a provisional key lapsing.

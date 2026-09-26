@@ -13,9 +13,9 @@
 #   - `gh`, logged in, and xcodegen
 #
 # The GitHub release is the download. Three assets: the DMG under the stable name
-# Layland.dmg (so releases/latest/download/Layland.dmg is a permanent link), the zip
-# Sparkle installs from, and appcast.xml, which the app reads through
-# releases/latest/download/appcast.xml. The release is created as a draft and published
+# Layland.dmg (layland.app/download redirects to releases/latest/download/Layland.dmg), the
+# zip Sparkle installs from, and appcast.xml, which layland.app/appcast.xml proxies from
+# releases/latest/download/ — so nothing on the site changes per release. The release is created as a draft and published
 # only once every asset is up, so no check sees an appcast whose zip is still uploading.
 #
 #   ./release.sh                 the real thing
@@ -158,7 +158,7 @@ APPCAST_FLAGS=()
 # The odd expansion is for macOS's bash 3.2, where an empty array is unset under `set -u`.
 "$GENERATE_APPCAST" \
   --download-url-prefix "$RELEASES/download/$TAG/" \
-  --link "https://github.com/$REPO" \
+  --link "https://layland.app" \
   --embed-release-notes \
   ${APPCAST_FLAGS[@]+"${APPCAST_FLAGS[@]}"} \
   "$FEED_DIR"
@@ -204,7 +204,9 @@ for attempt in $(seq 1 12); do
     break
   fi
   [ "$attempt" = 12 ] && {
-    echo "!! $FEED_URL does not offer build $BUILD yet — GitHub may be slow to update 'latest'." >&2
+    echo "!! $FEED_URL does not offer build $BUILD yet: either GitHub is slow to update 'latest'," >&2
+    echo "   or layland.app's _redirects rule for /appcast.xml is not deployed." >&2
+    echo "   Check: curl -sL $RELEASES/latest/download/appcast.xml | grep sparkle:version" >&2
     exit 1
   }
   sleep 5
@@ -214,5 +216,5 @@ echo
 echo "ready: $DMG"
 echo "  commit:   $(git rev-parse --short HEAD)"
 echo "  release:  $RELEASES/tag/$TAG"
-echo "  download: $RELEASES/latest/download/Layland.dmg"
+echo "  download: https://layland.app/download"
 echo "  feed:     $FEED_URL — every copy that checks is offered $VERSION"

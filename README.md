@@ -4,7 +4,7 @@ A macOS disk-usage treemap in the spirit of [GrandPerspective](https://grandpers
 built around one goal: **scan fast**. On a 3.8-million-entry home folder it finishes in ~13 s where
 `du -sk` needs ~76 s (Apple silicon, APFS, macOS 26).
 
-Native Swift 6, SwiftUI shell, AppKit treemap. No dependencies.
+Native Swift 6, SwiftUI shell, AppKit treemap. One dependency: [Sparkle](https://sparkle-project.org), for updates.
 
 ## Build
 
@@ -115,7 +115,8 @@ LaylandTests/     unit tests
 
 Layland updates itself with [Sparkle](https://sparkle-project.org): once the user agrees (Sparkle
 asks on the second launch), it checks
-`https://github.com/daformat/layland/releases/latest/download/appcast.xml` daily, and installs
+`https://layland.app/appcast.xml` daily (the site proxies the appcast attached to the latest
+GitHub release), and installs
 EdDSA-signed, notarized archives in place. App menu ▸ Check for Updates… checks now. To try an
 update against a local feed, run a build with `LAYLAND_FEED=http://localhost:8000/appcast.xml`.
 

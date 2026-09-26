@@ -45,10 +45,12 @@ targets:
         CFBundleDisplayName: Layland
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        # Updates (Sparkle): the appcast is an asset of the latest GitHub release, and every
-        # archive it lists is signed with this EdDSA key (the same one as Subtitles; the
-        # private half is in the login Keychain — back it up with generate_keys -x).
-        SUFeedURL: https://github.com/daformat/layland/releases/latest/download/appcast.xml
+        # Updates (Sparkle): the appcast is an asset of the latest GitHub release, which
+        # layland.app/appcast.xml proxies (the site's _redirects), so installed copies only
+        # ever ask the site. Every archive it lists is signed with this EdDSA key (the same one
+        # as Subtitles; the private half is in the login Keychain — back it up with
+        # generate_keys -x).
+        SUFeedURL: https://layland.app/appcast.xml
         SUPublicEDKey: m+S4Ls6kFN21gYSPjfLglyylSW97Z/usYuahg1+RMr4=
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
         LSApplicationCategoryType: public.app-category.utilities
