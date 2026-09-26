@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct LaylandApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
     @State private var session = ScanSession()
+    private let updater = Updater.shared
     @Environment(\.openWindow) private var openWindow
 
     static let mainWindowID = "main"

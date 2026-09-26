@@ -6,8 +6,17 @@ options:
   createIntermediateGroups: true
   generateEmptyDirectories: true
 
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: 2.9.6
+
 settings:
   base:
+    # The version people see, and the build number Sparkle compares: monotonic, never
+    # reused. release.sh reads both from here.
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "6.0"
     DEVELOPMENT_TEAM: 72SRWBKE32
     CODE_SIGN_STYLE: Manual
@@ -27,13 +36,20 @@ targets:
     platform: macOS
     sources:
       - path: Layland
+    dependencies:
+      - package: Sparkle
     info:
       path: Layland/App/Info.plist
       properties:
         CFBundleName: Layland
         CFBundleDisplayName: Layland
-        CFBundleShortVersionString: "0.1.0"
-        CFBundleVersion: "1"
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Updates (Sparkle): the appcast is an asset of the latest GitHub release, and every
+        # archive it lists is signed with this EdDSA key (the same one as Subtitles; the
+        # private half is in the login Keychain — back it up with generate_keys -x).
+        SUFeedURL: https://github.com/daformat/layland/releases/latest/download/appcast.xml
+        SUPublicEDKey: m+S4Ls6kFN21gYSPjfLglyylSW97Z/usYuahg1+RMr4=
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
         LSApplicationCategoryType: public.app-category.utilities
         NSHumanReadableCopyright: "© 2026 Mathieu Jouhet"

@@ -12,6 +12,7 @@ struct LaylandCommands: Commands {
 
     var body: some Commands {
         CommandGroup(after: .appInfo) {
+            CheckForUpdatesButton()
             Button(session.licensing.entitlement.menuTitle) {
                 session.requestUnlock(nil)
             }

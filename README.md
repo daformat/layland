@@ -111,6 +111,21 @@ LaylandTests/     unit tests
 - App Store build: enable the sandbox and keep folder access through security-scoped bookmarks
   (folder selection already goes through `NSOpenPanel`).
 
+## Updates and releases
+
+Layland updates itself with [Sparkle](https://sparkle-project.org): once the user agrees (Sparkle
+asks on the second launch), it checks
+`https://github.com/daformat/layland/releases/latest/download/appcast.xml` daily, and installs
+EdDSA-signed, notarized archives in place. App menu ▸ Check for Updates… checks now. To try an
+update against a local feed, run a build with `LAYLAND_FEED=http://localhost:8000/appcast.xml`.
+
+`./release.sh` makes a release: it builds a universal Release, packages and notarizes a DMG,
+zips the stapled app for Sparkle, signs it into the appcast (keeping previous entries), and
+publishes a GitHub release with `Layland.dmg`, the zip and `appcast.xml`. Bump
+`MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `project.yml` and add a `CHANGELOG.md`
+entry first. `--no-notarize` stops after the DMG; `--dry-run` exercises the publishing half
+against a draft it deletes; `--critical` marks an update nobody should skip.
+
 ## License
 
 [FSL-1.1-ALv2](LICENSE) — the [Functional Source License](https://fsl.software).
