@@ -110,3 +110,12 @@ LaylandTests/     unit tests
 - A "largest files" sidebar and a colour legend / filter by category.
 - App Store build: enable the sandbox and keep folder access through security-scoped bookmarks
   (folder selection already goes through `NSOpenPanel`).
+
+## License
+
+[FSL-1.1-ALv2](LICENSE) — the [Functional Source License](https://fsl.software).
+Read it, build it, modify it, run it for whatever you like. The one thing it
+withholds is *competing use*: shipping it as a commercial product that
+substitutes for this one. Every release converts to **Apache-2.0 two years after
+it is published**, irrevocably — so this is open source on a delay, not a
+trapdoor.
