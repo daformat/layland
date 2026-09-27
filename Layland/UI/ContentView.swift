@@ -54,10 +54,13 @@ struct ContentView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(nsColor: .windowBackgroundColor))
+                    .background(.windowBackground)
                     .contentShape(Rectangle())
                 }
             }
+            // These full-window screens paint a solid background under the title bar; the
+            // toolbar's own (wallpaper-tinted, with a separator) would show as a second color.
+            .toolbarBackgroundVisibility(session.isEditingPalette || session.phase == .finished ? .automatic : .hidden, for: .windowToolbar)
         }
         .frame(minWidth: 720, minHeight: 480)
         // Toggling the preference animates; the sidebar simply appearing with a finished scan
