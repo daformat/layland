@@ -45,7 +45,7 @@ enum CushionRenderer {
             for index in start ..< end {
                 let cell = cells[index]
                 guard cell.isLeaf else { continue }
-                if cell.node < 0 {
+                if cell.node == TreemapCell.freeSpaceNode || cell.node == TreemapCell.otherSpaceNode {
                     hatch(layout.paintRect(of: cell), color: palette.color(cell.colorSlot), dark: palette.isDark, into: target)
                 } else {
                     rasterize(cell, in: layout.paintRect(of: cell), color: palette.color(cell.colorSlot), light: light, lighting: lighting, flatShade: flatShade, into: target)

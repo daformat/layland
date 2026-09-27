@@ -308,7 +308,10 @@ struct TreemapScreen: View {
                     selection: session.selection,
                     highlightedNodes: session.searchMatches,
                     quickLookRequest: session.quickLookRequest,
-                    onHover: { session.hovered = $0 },
+                    onHover: { node, group in
+                        session.hovered = node
+                        session.hoveredGroup = group
+                    },
                     onSelect: { session.selection = $0 },
                     onOpen: { session.open($0) },
                     onRender: { session.mapDidRender() },
@@ -483,7 +486,18 @@ struct StatusBar: View {
     private func content(showsHint: Bool) -> some View {
         HStack(spacing: 12) {
             if let tree = session.displayedTree, let node = session.focusNode {
-                if node < 0, let result = session.result {
+                if node == session.hovered, let group = session.hoveredGroup {
+                    Text(group.path)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer(minLength: 8)
+                    let size = group.size
+                    Text([Format.bytes(size), Format.percent(size, of: tree[session.zoomRoot].size(session.sizeMode)), "\(Format.count(group.fileCount)) files"].joined(separator: " · "))
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .fixedSize()
+                } else if node < 0, let result = session.result {
                     let free = node == TreemapCell.freeSpaceNode
                     Text(free ? "Free space on the volume" : "Used elsewhere on the volume (system, apps, other users, snapshots…)")
                         .lineLimit(1)

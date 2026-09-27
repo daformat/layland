@@ -209,3 +209,40 @@ struct AgeRampTests {
         #expect(TreemapPalette.ageRamp(from: Array(repeating: 0x808080, count: 20)) == TreemapPalette.modifiedColors)
     }
 }
+
+@Suite("Group by extension")
+struct ExtensionGroupTests {
+    @Test("files are gathered by family, then extension, and laid out inside their groups")
+    func groups() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        try Data(repeating: 5, count: 300).write(to: fixture.root.appendingPathComponent("b/notes.TXT"))
+        let tree = try DiskScanner(rootPath: fixture.root.path).run().tree
+        let groups = ExtensionGroups(tree: tree, root: FileTree.rootIndex, sizeMode: .logical)
+
+        // Largest first: "No extension" (file1, file2, .hidden) beats "Documents" (.txt).
+        let families = groups.families.compactMap { groups.group($0) }
+        #expect(families.map(\.title) == ["No extension", "Documents"])
+        let noExtension = families[0]
+        #expect(noExtension.members.allSatisfy { $0 >= 0 })
+        #expect(noExtension.members.first == tree.node(at: "a/file2"))
+
+        let documents = families[1]
+        #expect(documents.fileCount == 2 && documents.size == 310)
+        let txt = try #require(groups.group(documents.members[0]))
+        #expect(txt.title == ".txt" && txt.members == [tree.node(at: "b/notes.TXT"), tree.node(at: "a/nested/deep.txt")])
+        #expect(groups.summary(of: documents.members[0])?.path == "Documents › .txt")
+
+        let size = CGSize(width: 400, height: 300)
+        let layout = TreemapLayout(tree: tree, root: FileTree.rootIndex, pixelSize: size, sizeMode: .logical, groups: groups)
+        let leaves = layout.cells.filter(\.isLeaf)
+        #expect(leaves.reduce(0.0) { $0 + $1.rect.width * $1.rect.height } == size.width * size.height)
+        // No folder cells: only groups and files.
+        #expect(!layout.cells.dropFirst().contains { $0.node >= 0 && tree[$0.node].isDirectory })
+        let notesNode = try #require(tree.node(at: "b/notes.TXT"))
+        let notes = try #require(layout.cell(for: notesNode))
+        let txtCell = try #require(layout.cell(for: documents.members[0]))
+        #expect(txtCell.isDirectory && txtCell.rect.contains(notes.rect) && notes.depth == 3)
+        #expect(notes.colorSlot == 5)
+    }
+}

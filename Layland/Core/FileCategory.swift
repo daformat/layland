@@ -38,12 +38,18 @@ public enum FileCategory {
 
     /// Slot for a file name. Works on raw bytes, no allocation.
     public static func slot(forName name: UnsafeBufferPointer<UInt8>) -> UInt8 {
-        guard let dot = name.lastIndex(of: UInt8(ascii: ".")), dot > 0, dot < name.count - 1, name.count - dot - 1 <= 12 else {
-            return noExtension
-        }
-        let hash = hash(name[(dot + 1)...])
+        guard let hash = extensionHash(forName: name) else { return noExtension }
         if let slot = known[hash] { return slot }
         return hashedSlots.lowerBound + UInt8(hash % UInt32(hashedSlots.count))
+    }
+
+    /// Case-insensitive hash of the extension the slot is derived from, or nil when the name
+    /// counts as having none (no dot, a leading dot only, or an extension over 12 bytes).
+    public static func extensionHash(forName name: UnsafeBufferPointer<UInt8>) -> UInt32? {
+        guard let dot = name.lastIndex(of: UInt8(ascii: ".")), dot > 0, dot < name.count - 1, name.count - dot - 1 <= 12 else {
+            return nil
+        }
+        return hash(name[(dot + 1)...])
     }
 
     public static func slot(forName name: ArraySlice<UInt8>) -> UInt8 {

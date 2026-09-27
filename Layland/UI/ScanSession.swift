@@ -26,6 +26,8 @@ final class ScanSession {
     var zoomRoot: Int32 = FileTree.rootIndex
     var selection: Int32?
     var hovered: Int32?
+    /// Details of the hovered extension group (`hovered` is then its pseudo node).
+    var hoveredGroup: ExtensionGroups.Summary?
     var sizeMode: SizeMode = .logical
     /// Gap between cells in device pixels (View ▸ Cell Margin). Persisted.
     var cellMargin: Int = UserDefaults.standard.integer(forKey: "cellMargin") {
@@ -47,6 +49,10 @@ final class ScanSession {
     /// View ▸ Color By. Persisted.
     var colorMode: ColorMode = ColorMode(rawValue: UserDefaults.standard.string(forKey: "colorMode") ?? "") ?? .fileType {
         didSet { UserDefaults.standard.set(colorMode.rawValue, forKey: "colorMode") }
+    }
+    /// View ▸ Group By. Persisted.
+    var groupMode: GroupMode = GroupMode(rawValue: UserDefaults.standard.string(forKey: "groupMode") ?? "") ?? .folder {
+        didSet { UserDefaults.standard.set(groupMode.rawValue, forKey: "groupMode") }
     }
     /// View ▸ Show Legend. Persisted; on by default.
     var showsLegend: Bool = UserDefaults.standard.object(forKey: "showsLegend") as? Bool ?? true {
@@ -78,7 +84,7 @@ final class ScanSession {
             volume = TreemapLayout.VolumeInfo(size: result.volumeSize, free: result.freeSpace)
         }
         return TreemapView.Configuration(
-            root: zoomRoot, sizeMode: sizeMode, margin: cellMargin, palette: paletteSpec,
+            root: zoomRoot, sizeMode: sizeMode, groupMode: groupMode, margin: cellMargin, palette: paletteSpec,
             referenceTime: (isEditingPalette ? Date() : result?.date ?? Date()).timeIntervalSince1970,
             volume: volume, shape: cushionStrength.shape, version: treeVersion
         )

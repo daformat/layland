@@ -87,6 +87,9 @@ struct TreemapLayout: Sendable {
     let colorMode: ColorMode
     /// Reference time for `ColorMode.modified`, seconds since 1970.
     let referenceTime: TimeInterval
+    /// Set for `GroupMode.fileExtension`: the root's files are laid out in these groups instead
+    /// of their folders.
+    let groups: ExtensionGroups?
     /// Half of the gap, in pixels, between "large" things. A cell at least `marginThreshold` on
     /// both axes gives up `margin` on all four sides; a smaller cell gives it up only on sides
     /// where it touches the boundary of a large enclosing directory. Folders never inset their
@@ -102,7 +105,7 @@ struct TreemapLayout: Sendable {
     init(
         tree: FileTree, root: Int32, pixelSize: CGSize, sizeMode: SizeMode, shape: CushionShape = CushionShape(),
         margin: Int = 0, colorMode: ColorMode = .fileType, referenceTime: TimeInterval = Date().timeIntervalSince1970,
-        volume: VolumeInfo? = nil
+        groups: ExtensionGroups? = nil, volume: VolumeInfo? = nil
     ) {
         self.root = root
         self.pixelSize = CGSize(width: pixelSize.width.rounded(.down), height: pixelSize.height.rounded(.down))
@@ -111,12 +114,13 @@ struct TreemapLayout: Sendable {
         self.margin = max(0, margin)
         self.colorMode = colorMode
         self.referenceTime = referenceTime
+        self.groups = groups
         cells.reserveCapacity(1 << 14)
 
         let bounds = CGRect(origin: .zero, size: self.pixelSize)
         let rootNode = tree[root]
         let cushion = parabola(for: bounds, depth: 0)
-        var items = Self.items(of: root, tree: tree, sizeMode: sizeMode)
+        var items = items(of: root, tree: tree)
         // Free and other space only make sense next to the whole scanned tree.
         if let volume, root == FileTree.rootIndex, volume.size > 0 {
             let scanned = rootNode.size(sizeMode)
@@ -135,8 +139,14 @@ struct TreemapLayout: Sendable {
         }
     }
 
-    /// Non-empty children of a directory, largest first.
-    private static func items(of directory: Int32, tree: FileTree, sizeMode: SizeMode) -> [(node: Int32, weight: Double)] {
+    /// Non-empty children of a directory (or, when grouping, of the root or a group), largest first.
+    private func items(of directory: Int32, tree: FileTree) -> [(node: Int32, weight: Double)] {
+        if let groups {
+            let members = directory == root ? groups.families : groups.group(directory)?.members ?? []
+            return members.map { member in
+                (member, Double(groups.group(member)?.size ?? tree[member].size(sizeMode)))
+            }
+        }
         var items: [(node: Int32, weight: Double)] = []
         for child in tree.orderedChildren(of: directory, by: sizeMode) {
             let size = tree[child].size(sizeMode)
@@ -173,7 +183,7 @@ struct TreemapLayout: Sendable {
     }
 
     private mutating func layoutChildren(of directory: Int32, in rect: CGRect, edges parentEdges: GapEdges, depth: Int32, parentCushion: SIMD4<Float>, tree: FileTree) {
-        layoutItems(Self.items(of: directory, tree: tree, sizeMode: sizeMode), in: rect, edges: parentEdges, depth: depth, parentCushion: parentCushion, tree: tree)
+        layoutItems(items(of: directory, tree: tree), in: rect, edges: parentEdges, depth: depth, parentCushion: parentCushion, tree: tree)
     }
 
     private mutating func layoutItems(_ items: [(node: Int32, weight: Double)], in rect: CGRect, edges parentEdges: GapEdges, depth: Int32, parentCushion: SIMD4<Float>, tree: FileTree) {
@@ -189,7 +199,8 @@ struct TreemapLayout: Sendable {
             let cellRect = CGRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0)
             let edges: GapEdges = isLarge(cellRect) ? .all : parentEdges.intersection(Self.touchingEdges(of: cellRect, in: rect))
 
-            if child < 0 {
+            let group = groups?.group(child)
+            if child < 0, group == nil {
                 // Volume pseudo cells: flat (no ridge of their own), never expanded.
                 let slot = child == TreemapCell.freeSpaceNode ? TreemapPalette.freeSpaceSlot : TreemapPalette.otherSpaceSlot
                 cells.append(TreemapCell(
@@ -199,12 +210,13 @@ struct TreemapLayout: Sendable {
                 continue
             }
 
-            let node = tree[child]
             let cushion = parentCushion + parabola(for: cellRect, depth: depth)
-            let expand = node.isDirectory && node.childCount > 0
+            let isDirectory = group != nil || tree[child].isDirectory
+            let hasChildren = group.map { !$0.members.isEmpty } ?? (isDirectory && tree[child].childCount > 0)
+            let expand = hasChildren
                 && cellRect.width >= Self.minimumExpandSize && cellRect.height >= Self.minimumExpandSize
             cells.append(TreemapCell(
-                node: child, rect: cellRect, depth: depth, isDirectory: node.isDirectory, isLeaf: !expand,
+                node: child, rect: cellRect, depth: depth, isDirectory: isDirectory, isLeaf: !expand,
                 colorSlot: expand ? 0 : colorSlot(for: child, tree: tree), gapEdges: edges, cushion: cushion
             ))
             if expand {
@@ -228,11 +240,16 @@ struct TreemapLayout: Sendable {
         return SIMD4(s1x, s2x, s1y, s2y)
     }
 
-    /// Color of a leaf: a file's own category or age, or that of a collapsed directory's
-    /// largest descendant.
+    /// Color of a leaf: a file's own category or age, or that of a collapsed directory's (or
+    /// group's) largest descendant.
     private func colorSlot(for index: Int32, tree: FileTree) -> Int32 {
         var current = index
         for _ in 0 ..< 64 {
+            if let group = groups?.group(current) {
+                guard let largest = group.members.first else { return TreemapPalette.emptyDirectorySlot }
+                current = largest
+                continue
+            }
             let node = tree[current]
             guard node.isDirectory else {
                 switch colorMode {

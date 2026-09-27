@@ -7,7 +7,7 @@ struct TreemapHostView: NSViewRepresentable {
     let highlightedNodes: [Int32]?
     /// Incremented by the session to toggle Quick Look from the menu.
     let quickLookRequest: Int
-    let onHover: (Int32?) -> Void
+    let onHover: (Int32?, ExtensionGroups.Summary?) -> Void
     let onSelect: (Int32?) -> Void
     let onOpen: (Int32) -> Void
     var onRender: () -> Void = {}

@@ -84,6 +84,11 @@ struct LaylandCommands: Commands {
                     Text(mode.title).tag(mode)
                 }
             }
+            Picker("Group By", selection: $session.groupMode) {
+                ForEach(GroupMode.allCases) { mode in
+                    Text(mode.title).tag(mode)
+                }
+            }
             Toggle("Show Legend", isOn: $session.showsLegend.animation())
                 .keyboardShortcut("l", modifiers: [.command, .option])
             Toggle("Show Free Space", isOn: $session.showsVolume)

@@ -12,6 +12,7 @@ final class TreemapView: NSView {
     struct Configuration: Equatable {
         var root: Int32 = FileTree.rootIndex
         var sizeMode: SizeMode = .logical
+        var groupMode: GroupMode = .folder
         var margin = 0
         var palette = PaletteSpec(mode: .fileType, colors: [])
         var referenceTime: TimeInterval = 0
@@ -20,7 +21,8 @@ final class TreemapView: NSView {
         var version = 0
     }
 
-    var onHover: ((Int32?) -> Void)?
+    /// The hovered node, with the group's details when it is an extension group.
+    var onHover: ((Int32?, ExtensionGroups.Summary?) -> Void)?
     var onSelect: ((Int32?) -> Void)?
     var onOpen: ((Int32) -> Void)?
     /// Called when an image of the current tree at the view's current size is on screen.
@@ -51,8 +53,8 @@ final class TreemapView: NSView {
     private var renderer: TreemapRenderer!
     private var generation = 0
     private var current: TreemapRenderer.Result?
-    private var cellIndex: [Int32: Int]?
     private var hoveredCell: TreemapCell?
+    private var hoveredGroup: ExtensionGroups.Summary?
     private var trackingArea: NSTrackingArea?
     private let highlightLayer = CAShapeLayer()
     private let hoverAncestorsLayer = CAShapeLayer()
@@ -108,7 +110,6 @@ final class TreemapView: NSView {
     private func requestRender() {
         guard let tree, bounds.width >= 1, bounds.height >= 1 else {
             current = nil
-            cellIndex = nil
             setHovered(nil)
             updateSelectionOverlay()
             updateHighlightOverlay()
@@ -117,7 +118,8 @@ final class TreemapView: NSView {
         }
         generation += 1
         let request = TreemapRenderer.Request(
-            tree: tree, root: configuration.root, sizeMode: configuration.sizeMode, version: configuration.version,
+            tree: tree, root: configuration.root, sizeMode: configuration.sizeMode, groupMode: configuration.groupMode,
+            version: configuration.version,
             pixelSize: pixelSize,
             dark: isDark, margin: configuration.margin, palette: configuration.palette,
             referenceTime: configuration.referenceTime, volume: configuration.volume, shape: configuration.shape, generation: generation
@@ -135,7 +137,6 @@ final class TreemapView: NSView {
         // A slower, older render must not replace a newer one that already arrived.
         if let current, current.request.generation > result.request.generation { return }
         current = result
-        cellIndex = nil
         needsDisplay = true
         updateSelectionOverlay()
         updateHighlightOverlay()
@@ -248,11 +249,9 @@ final class TreemapView: NSView {
         return CGRect(x: pixelRect.minX * sx, y: bounds.height - pixelRect.minY * sy - height, width: pixelRect.width * sx, height: height)
     }
 
+    /// Built by the renderer: hundreds of thousands of cells are too many to index here.
     private func index(for layout: TreemapLayout) -> [Int32: Int] {
-        if let cellIndex { return cellIndex }
-        let index = layout.cellIndex()
-        cellIndex = index
-        return index
+        current?.cellIndex ?? layout.cellIndex()
     }
 
     // MARK: Overlays
@@ -260,6 +259,7 @@ final class TreemapView: NSView {
     /// Outlines of every ancestor folder of `node` that has a cell, up to (excluding) the
     /// displayed root — like GrandPerspective, so you can see where an item sits.
     private func ancestorsPath(of node: Int32, in layout: TreemapLayout) -> CGPath? {
+        if layout.groups != nil { return groupsPath(of: node, in: layout) }
         guard let tree, node >= 0 else { return nil }
         let index = index(for: layout)
         let path = CGMutablePath()
@@ -273,12 +273,31 @@ final class TreemapView: NSView {
         return path.isEmpty ? nil : path
     }
 
+    /// The same, when grouped by extension: the enclosing groups instead of folders. Cells are
+    /// in depth-first order, so each one's parent is the nearest shallower cell before it.
+    private func groupsPath(of node: Int32, in layout: TreemapLayout) -> CGPath? {
+        guard let position = index(for: layout)[node] else { return nil }
+        let path = CGMutablePath()
+        var depth = layout.cells[position].depth
+        var cursor = position - 1
+        while cursor >= 0, depth > 1 {
+            let cell = layout.cells[cursor]
+            if cell.depth < depth {
+                path.addRect(viewRect(for: cell.rect, in: layout).insetBy(dx: 1, dy: 1))
+                depth = cell.depth
+            }
+            cursor -= 1
+        }
+        return path.isEmpty ? nil : path
+    }
+
     private func updateSelectionOverlay() {
-        guard let current, let selection, selection >= 0, let cell = current.layout.cell(for: selection) else {
+        guard let current, let selection, selection >= 0, let position = current.cellIndex[selection] else {
             selectionLayer.isHidden = true
             selectionAncestorsLayer.isHidden = true
             return
         }
+        let cell = current.layout.cells[position]
         let color = NSColor.controlAccentColor
         selectionLayer.strokeColor = color.cgColor
         selectionLayer.path = CGPath(rect: viewRect(for: cell.rect, in: current.layout).insetBy(dx: 1.5, dy: 1.5), transform: nil)
@@ -346,10 +365,13 @@ final class TreemapView: NSView {
     private func setHovered(_ cell: TreemapCell?) {
         // Always adopt the new cell: even for the same node its rect belongs to the current
         // layout, and the previous one may have come from a render of a different size.
-        let changed = cell?.node != hoveredCell?.node
+        // A group's pseudo node can stand for another group after a re-layout: compare details too.
+        let group = cell.flatMap { current?.layout.groups?.summary(of: $0.node) }
+        let changed = cell?.node != hoveredCell?.node || group != hoveredGroup
         hoveredCell = cell
+        hoveredGroup = group
         updateHoverOverlay()
-        if changed { onHover?(cell?.node) }
+        if changed { onHover?(cell?.node, group) }
     }
 
     override func mouseMoved(with event: NSEvent) {
