@@ -323,8 +323,16 @@ struct TreemapScreen: View {
             Divider()
             StatusBar()
         }
-        .searchable(text: $session.searchText, placement: .toolbar, prompt: "Search file names")
-        .onSubmit(of: .search) { session.selectNextMatch() }
+        .background {
+            // The search field once the map is uncovered, not while it draws behind the
+            // scanning screen, when there is nothing to search yet. On a sibling rather than on
+            // the map, which would be rebuilt when the field comes.
+            if session.phase == .finished || session.isEditingPalette {
+                Color.clear
+                    .searchable(text: $session.searchText, placement: .toolbar, prompt: "Search file names")
+                    .onSubmit(of: .search) { session.selectNextMatch() }
+            }
+        }
         .toolbar {
             // Nothing while the map is still hidden behind the scanning screen.
             if session.phase == .finished || session.isEditingPalette {
