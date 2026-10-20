@@ -4,6 +4,12 @@ Every released version of Layland, newest first. Dates are the release commit's.
 Versions are `MARKETING_VERSION` in `project.yml`, which is what the About panel and
 the DMG name show.
 
+## 1.3.0 · 2026-10-20
+
+- **Runs on macOS 14 Sonoma**, as well as macOS 15 and later, on Apple
+  silicon and Intel. Scans are just as fast there, and nothing changes on
+  newer versions of macOS.
+
 ## 1.2.0 · 2026-10-20
 
 - **In your language.** Layland is now in English, Spanish, French,
