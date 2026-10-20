@@ -60,7 +60,7 @@ struct ContentView: View {
             }
             // These full-window screens paint a solid background under the title bar; the
             // toolbar's own (wallpaper-tinted, with a separator) would show as a second color.
-            .toolbarBackgroundVisibility(session.isEditingPalette || session.phase == .finished ? .automatic : .hidden, for: .windowToolbar)
+            .windowToolbarBackground(session.isEditingPalette || session.phase == .finished ? .automatic : .hidden)
         }
         .frame(minWidth: 720, minHeight: 480)
         // Toggling the preference animates; the sidebar simply appearing with a finished scan
@@ -111,6 +111,20 @@ struct ContentView: View {
     private var trashTitle: String {
         guard let tree = session.tree, let node = session.pendingTrash else { return "" }
         return L("Move “\(tree.name(node))” to the Trash?")
+    }
+}
+
+extension View {
+    /// The window toolbar's own background, shown or hidden: toolbarBackgroundVisibility on
+    /// macOS 15 and later, and on macOS 14 toolbarBackground, the same switch under its first
+    /// name.
+    @ViewBuilder
+    func windowToolbarBackground(_ visibility: Visibility) -> some View {
+        if #available(macOS 15, *) {
+            toolbarBackgroundVisibility(visibility, for: .windowToolbar)
+        } else {
+            toolbarBackground(visibility, for: .windowToolbar)
+        }
     }
 }
 

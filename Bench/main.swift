@@ -2,7 +2,10 @@ import Foundation
 
 // layland-bench: scans a directory with the Layland scanner and reports timing.
 //
-//   layland-bench [--threads N] [--top K] [--allocated] [--cross-mounts] [--quiet] <path>
+//   layland-bench [--threads N] [--top K] [--allocated] [--cross-mounts] [--legacy-locks] [--quiet] <path>
+//
+// --legacy-locks shares the scan's state the way macOS 14 does (ScanSync.swift), to time
+// that path on a newer Mac.
 
 var path: String?
 var options = ScanOptions()
@@ -24,6 +27,8 @@ while let argument = arguments.next() {
         sizeMode = .allocated
     case "--cross-mounts":
         options.crossMountPoints = true
+    case "--legacy-locks":
+        options.legacySynchronization = true
     case "--quiet":
         quiet = true
     case "--save":
@@ -35,7 +40,7 @@ while let argument = arguments.next() {
         guard parts.count == 3, let common = parts[0], let dir = parts[1], let file = parts[2] else { fail("--attrs needs common,dir,file in hex") }
         options.attributeOverride = (common, dir, file)
     case "-h", "--help":
-        print("usage: layland-bench [--threads N] [--top K] [--allocated] [--cross-mounts] [--quiet] [--save file.layland] <path>")
+        print("usage: layland-bench [--threads N] [--top K] [--allocated] [--cross-mounts] [--legacy-locks] [--quiet] [--save file.layland] <path>")
         exit(0)
     default:
         path = argument
@@ -62,7 +67,7 @@ nonisolated func count(_ value: Int64) -> String {
 }
 
 let scanner = DiskScanner(rootPath: path, options: options)
-print("scanning \(scanner.rootPath) with \(options.threadCount) threads…")
+print("scanning \(scanner.rootPath) with \(options.threadCount) threads\(options.legacySynchronization ? ", macOS 14 locks" : "")…")
 
 let showProgress = !quiet
 let progressThread = Thread {

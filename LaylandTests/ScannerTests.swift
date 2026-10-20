@@ -52,6 +52,38 @@ extension FileTree {
 
 @Suite("DiskScanner")
 struct DiskScannerTests {
+    @Test("the macOS 14 locks scan the same tree as Atomic and Mutex")
+    func legacySynchronizationMatches() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+
+        var legacy = ScanOptions()
+        legacy.legacySynchronization = true
+        let modern = try DiskScanner(rootPath: fixture.root.path).run()
+        let old = try DiskScanner(rootPath: fixture.root.path, options: legacy).run()
+        #expect(old.statistics.files == modern.statistics.files)
+        #expect(old.statistics.directories == modern.statistics.directories)
+        #expect(old.statistics.symlinks == modern.statistics.symlinks)
+        #expect(old.statistics.logicalBytes == modern.statistics.logicalBytes)
+        #expect(old.tree[FileTree.rootIndex].logicalSize == modern.tree[FileTree.rootIndex].logicalSize)
+        #expect(old.tree[FileTree.rootIndex].allocatedSize == modern.tree[FileTree.rootIndex].allocatedSize)
+        #expect(old.tree.count == modern.tree.count)
+    }
+
+    @Test("a scanner runs once, with either kind of lock")
+    func runsOnce() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+
+        for legacySynchronization in [false, true] {
+            var options = ScanOptions()
+            options.legacySynchronization = legacySynchronization
+            let scanner = DiskScanner(rootPath: fixture.root.path, options: options)
+            _ = try scanner.run()
+            #expect(throws: ScanError.self) { try scanner.run() }
+        }
+    }
+
     @Test("scans a small tree with correct sizes, kinds and counts")
     func scansSmallTree() throws {
         let fixture = try Fixture()

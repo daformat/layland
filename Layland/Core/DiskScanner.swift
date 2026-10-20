@@ -1,6 +1,5 @@
 import Darwin
 import Foundation
-import Synchronization
 
 public struct ScanOptions: Sendable {
     /// Number of scanning threads. Listing a directory typically costs one or two 4 KB metadata
@@ -14,6 +13,9 @@ public struct ScanOptions: Sendable {
     public var crossMountPoints = false
     /// Debug override for the requested attribute groups (common, dir, file).
     var attributeOverride: (common: UInt32, dir: UInt32, file: UInt32)?
+    /// Shares the scan's counters and lists the way macOS 14 does, on any Mac (ScanSync.swift):
+    /// for `layland-bench --legacy-locks` and the tests.
+    public var legacySynchronization = false
 
     public init() {}
 
@@ -90,47 +92,63 @@ public final class DiskScanner: Sendable {
     let builder: TreeBuilder
     let queue = WorkQueue()
 
-    private let started = Atomic<Bool>(false)
-    private let cancelled = Atomic<Bool>(false)
-    private let currentPath = Mutex<[UInt8]>([])
-    private let hardLinks = Mutex<[HardLinkRef]>([])
-    private let completedWeight = Mutex<Double>(0)
+    private let started: ScanFlag
+    private let cancelled: ScanFlag
+    private let currentPath: ScanLock<[UInt8]>
+    private let hardLinks: ScanLock<[HardLinkRef]>
+    private let completedWeight: ScanLock<Double>
 
-    let filesCount = Atomic<Int64>(0)
-    let directoriesCount = Atomic<Int64>(0)
-    let symlinksCount = Atomic<Int64>(0)
-    let othersCount = Atomic<Int64>(0)
-    let logicalBytes = Atomic<Int64>(0)
-    let allocatedBytes = Atomic<Int64>(0)
-    let inaccessibleDirectories = Atomic<Int64>(0)
-    let permissionDenied = Atomic<Int64>(0)
-    let readErrors = Atomic<Int64>(0)
-    let compressedFiles = Atomic<Int64>(0)
+    let filesCount: ScanCounter
+    let directoriesCount: ScanCounter
+    let symlinksCount: ScanCounter
+    let othersCount: ScanCounter
+    let logicalBytes: ScanCounter
+    let allocatedBytes: ScanCounter
+    let inaccessibleDirectories: ScanCounter
+    let permissionDenied: ScanCounter
+    let readErrors: ScanCounter
+    let compressedFiles: ScanCounter
 
     public init(rootPath: String, options: ScanOptions = ScanOptions()) {
         var path = (rootPath as NSString).expandingTildeInPath
         while path.count > 1, path.hasSuffix("/") { path.removeLast() }
         self.rootPath = path
         self.options = options
-        self.builder = TreeBuilder(rootPath: path)
+        let legacy = options.legacySynchronization
+        self.builder = TreeBuilder(rootPath: path, legacySynchronization: legacy)
+        started = .make(legacy: legacy)
+        cancelled = .make(legacy: legacy)
+        currentPath = .make([], legacy: legacy)
+        hardLinks = .make([], legacy: legacy)
+        completedWeight = .make(0, legacy: legacy)
+        filesCount = .make(legacy: legacy)
+        directoriesCount = .make(legacy: legacy)
+        symlinksCount = .make(legacy: legacy)
+        othersCount = .make(legacy: legacy)
+        logicalBytes = .make(legacy: legacy)
+        allocatedBytes = .make(legacy: legacy)
+        inaccessibleDirectories = .make(legacy: legacy)
+        permissionDenied = .make(legacy: legacy)
+        readErrors = .make(legacy: legacy)
+        compressedFiles = .make(legacy: legacy)
     }
 
-    public var isCancelled: Bool { cancelled.load(ordering: .relaxed) }
+    public var isCancelled: Bool { cancelled.isSet }
 
     /// Stops the scan as soon as each worker finishes its current directory. `run()` then returns
     /// the partial tree with `cancelled == true`.
     public func cancel() {
-        cancelled.store(true, ordering: .relaxed)
+        cancelled.set()
         queue.close()
     }
 
     public func progress() -> ScanProgress {
         ScanProgress(
-            files: filesCount.load(ordering: .relaxed),
-            directories: directoriesCount.load(ordering: .relaxed),
-            logicalBytes: logicalBytes.load(ordering: .relaxed),
-            allocatedBytes: allocatedBytes.load(ordering: .relaxed),
-            errors: inaccessibleDirectories.load(ordering: .relaxed) + readErrors.load(ordering: .relaxed),
+            files: filesCount.load(),
+            directories: directoriesCount.load(),
+            logicalBytes: logicalBytes.load(),
+            allocatedBytes: allocatedBytes.load(),
+            errors: inaccessibleDirectories.load() + readErrors.load(),
             currentPath: currentPath.withLock { String(decoding: $0.dropLast(), as: UTF8.self) },
             fraction: min(1, completedWeight.withLock { $0 })
         )
@@ -138,7 +156,7 @@ public final class DiskScanner: Sendable {
 
     /// Runs the scan to completion on the calling thread.
     public func run() throws -> ScanResult {
-        guard !started.exchange(true, ordering: .acquiringAndReleasing) else { throw ScanError.alreadyStarted }
+        guard !started.testAndSet() else { throw ScanError.alreadyStarted }
 
         var info = stat()
         guard stat(rootPath, &info) == 0 else { throw ScanError.cannotOpen(rootPath, errno: errno) }
@@ -194,16 +212,16 @@ public final class DiskScanner: Sendable {
 
     private func statistics() -> ScanStatistics {
         ScanStatistics(
-            files: filesCount.load(ordering: .relaxed),
-            directories: directoriesCount.load(ordering: .relaxed),
-            symlinks: symlinksCount.load(ordering: .relaxed),
-            others: othersCount.load(ordering: .relaxed),
-            logicalBytes: logicalBytes.load(ordering: .relaxed),
-            allocatedBytes: allocatedBytes.load(ordering: .relaxed),
-            inaccessibleDirectories: inaccessibleDirectories.load(ordering: .relaxed),
-            permissionDenied: permissionDenied.load(ordering: .relaxed),
-            readErrors: readErrors.load(ordering: .relaxed),
-            compressedFiles: compressedFiles.load(ordering: .relaxed)
+            files: filesCount.load(),
+            directories: directoriesCount.load(),
+            symlinks: symlinksCount.load(),
+            others: othersCount.load(),
+            logicalBytes: logicalBytes.load(),
+            allocatedBytes: allocatedBytes.load(),
+            inaccessibleDirectories: inaccessibleDirectories.load(),
+            permissionDenied: permissionDenied.load(),
+            readErrors: readErrors.load(),
+            compressedFiles: compressedFiles.load()
         )
     }
 
@@ -364,9 +382,9 @@ private final class ScanWorker {
         guard fd >= 0 else {
             let code = errno
             scanner.builder.insertFlags(.inaccessible, at: item.node)
-            scanner.inaccessibleDirectories.wrappingAdd(1, ordering: .relaxed)
+            scanner.inaccessibleDirectories.add(1)
             if code == EPERM || code == EACCES {
-                scanner.permissionDenied.wrappingAdd(1, ordering: .relaxed)
+                scanner.permissionDenied.add(1)
             }
             scanner.completeWeight(item.weight)
             return nil
@@ -404,17 +422,17 @@ private final class ScanWorker {
             hardLinks[index].node += base
         }
 
-        scanner.filesCount.wrappingAdd(files, ordering: .relaxed)
-        scanner.directoriesCount.wrappingAdd(directories, ordering: .relaxed)
-        scanner.symlinksCount.wrappingAdd(symlinks, ordering: .relaxed)
-        scanner.othersCount.wrappingAdd(others, ordering: .relaxed)
-        scanner.logicalBytes.wrappingAdd(logicalBytes, ordering: .relaxed)
-        scanner.allocatedBytes.wrappingAdd(allocatedBytes, ordering: .relaxed)
+        scanner.filesCount.add(files)
+        scanner.directoriesCount.add(directories)
+        scanner.symlinksCount.add(symlinks)
+        scanner.othersCount.add(others)
+        scanner.logicalBytes.add(logicalBytes)
+        scanner.allocatedBytes.add(allocatedBytes)
         if readErrors > 0 {
-            scanner.readErrors.wrappingAdd(readErrors, ordering: .relaxed)
+            scanner.readErrors.add(readErrors)
         }
         if compressed > 0 {
-            scanner.compressedFiles.wrappingAdd(compressed, ordering: .relaxed)
+            scanner.compressedFiles.add(compressed)
         }
 
         pendingItems.removeAll(keepingCapacity: true)

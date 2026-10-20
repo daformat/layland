@@ -23,7 +23,8 @@ Targets:
   (`--scan file.layland` loads a saved one); `--search text` pre-fills the search field;
   `--edit-palette` opens the palette editor.
 - **layland-bench** – CLI around the scanner for timing and correctness checks:
-  `layland-bench [--threads N] [--top K] [--allocated] [--cross-mounts] [--save out.layland] <path>`
+  `layland-bench [--threads N] [--top K] [--allocated] [--cross-mounts] [--legacy-locks] [--save out.layland] <path>`;
+  `--legacy-locks` times the scan the way it runs on macOS 14 (below)
 - **LaylandTests** – Swift Testing suite for the scanner, tree model and layout.
 
 Signing uses the Developer ID identity so the Full Disk Access grant survives rebuilds (ad-hoc
@@ -48,6 +49,16 @@ tools/strings.py import fr fr.json    # {key: translation} into the catalog
 
 A count goes into a string as an `Int` (`"\(count) files"` is `%lld files`), so each language gets
 the forms its numbers take; `Format.files(_:)` and its neighbors are the common ones.
+
+## macOS 14
+
+Layland runs on macOS 14 and later, and on 15 and later it is the same app as before: wherever
+macOS 14 lacks an API, the newer one is still used where it exists, behind `#available`, and
+macOS 14 gets the older equivalent. The scanner's counters and locks are Swift's `Atomic` and
+`Mutex` from macOS 15, and an unfair lock (`OSAllocatedUnfairLock`, the same `os_unfair_lock`)
+on 14 (`Core/ScanSync.swift`); they are taken once per directory, not per file, and
+`layland-bench --legacy-locks` showed the two the same speed on `~/dev` (11.2 s each, 2.9 M
+files). The Settings window's tabs and the toolbar background have their macOS 14 forms too.
 
 ## Why it's fast
 

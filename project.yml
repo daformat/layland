@@ -2,7 +2,7 @@ name: Layland
 options:
   bundleIdPrefix: com.matjouhet
   deploymentTarget:
-    macOS: "15.0"
+    macOS: "14.0"
   createIntermediateGroups: true
   developmentLanguage: en
   generateEmptyDirectories: true

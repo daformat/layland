@@ -3,19 +3,33 @@ import SwiftUI
 /// Layland ▸ Settings… (⌘,). One tab for now, laid out like Subtitles' Settings so more can join it.
 struct SettingsView: View {
     var body: some View {
-        TabView {
-            Tab {
-                LanguageSettings()
-            } label: {
-                Label {
-                    Text("Language", comment: "Settings tab: the language of the app's own menus and windows")
-                } icon: {
-                    Image(systemName: "globe")
+        Group {
+            if #available(macOS 15, *) {
+                TabView {
+                    Tab {
+                        LanguageSettings()
+                    } label: {
+                        languageLabel
+                    }
+                }
+            } else {
+                // macOS 14 has no Tab; tabItem draws the same toolbar tab.
+                TabView {
+                    LanguageSettings()
+                        .tabItem { languageLabel }
                 }
             }
         }
         .frame(width: 460)
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var languageLabel: some View {
+        Label {
+            Text("Language", comment: "Settings tab: the language of the app's own menus and windows")
+        } icon: {
+            Image(systemName: "globe")
+        }
     }
 }
 

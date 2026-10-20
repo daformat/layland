@@ -1,5 +1,4 @@
 import Foundation
-import Synchronization
 
 /// A file that has more than one hard link; used to count shared inodes only once.
 struct HardLinkRef {
@@ -17,9 +16,10 @@ final class TreeBuilder: Sendable {
         var names: [UInt8] = []
     }
 
-    private let storage: Mutex<Storage>
+    private let storage: ScanLock<Storage>
 
-    init(rootPath: String) {
+    /// `legacySynchronization`: the lock macOS 14 has, on any Mac (ScanSync.swift).
+    init(rootPath: String, legacySynchronization: Bool = false) {
         var initial = Storage()
         initial.nodes.reserveCapacity(1 << 16)
         initial.names.reserveCapacity(1 << 20)
@@ -28,7 +28,7 @@ final class TreeBuilder: Sendable {
         initial.nodes.append(FileNode(
             parent: -1, nameOffset: 0, nameLength: UInt16(clamping: rootName.count), kind: .directory
         ))
-        storage = Mutex(initial)
+        storage = .make(initial, legacy: legacySynchronization)
     }
 
     /// Appends `children` as the children of `parent`. `children[i].nameOffset` must be relative
