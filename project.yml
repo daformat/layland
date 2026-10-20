@@ -16,8 +16,8 @@ settings:
   base:
     # The version people see, and the build number Sparkle compares: monotonic, never
     # reused. release.sh reads both from here.
-    MARKETING_VERSION: "1.1.0"
-    CURRENT_PROJECT_VERSION: "2"
+    MARKETING_VERSION: "1.2.0"
+    CURRENT_PROJECT_VERSION: "3"
     SWIFT_VERSION: "6.0"
     DEVELOPMENT_TEAM: 72SRWBKE32
     CODE_SIGN_STYLE: Manual

@@ -4,6 +4,17 @@ Every released version of Layland, newest first. Dates are the release commit's.
 Versions are `MARKETING_VERSION` in `project.yml`, which is what the About panel and
 the DMG name show.
 
+## 1.2.0 · 2026-10-20
+
+- **In your language.** Layland is now in English, Spanish, French,
+  Italian, Brazilian Portuguese, German, Dutch, Turkish, Russian, Arabic,
+  Hindi, Japanese, Korean, Vietnamese, Ukrainian and Simplified Chinese. It
+  follows the language of your Mac, or the one you choose in Layland ▸
+  Settings ▸ Language, which switches at once.
+- **Right to left in Arabic**, the whole window included.
+- **The search field** appears with the map, instead of over the scanning
+  screen while the map is still drawing.
+
 ## 1.1.0 · 2026-09-27
 
 - **Group by file extension.** View ▸ Group By ▸ File Extension gathers every
