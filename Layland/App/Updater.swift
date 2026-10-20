@@ -31,7 +31,7 @@ struct CheckForUpdatesButton: View {
     @State private var model = CanCheckModel(updater: Updater.shared.updater)
 
     var body: some View {
-        Button("Check for Updates…") { Updater.shared.updater.checkForUpdates() }
+        Button(L("Check for Updates…")) { Updater.shared.updater.checkForUpdates() }
             .disabled(!model.canCheck)
     }
 

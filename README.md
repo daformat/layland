@@ -30,6 +30,25 @@ Signing uses the Developer ID identity so the Full Disk Access grant survives re
 signatures change per build and TCC silently stops honoring them). Change `DEVELOPMENT_TEAM` in
 `project.yml` or switch to `CODE_SIGN_IDENTITY: "-"` if you don't have one.
 
+## Localization
+
+Layland is in the same sixteen languages as Subtitles. It follows the system's language, or the
+one chosen in Settings ▸ Language, which switches at once: SwiftUI looks up the literals each
+window shows in the language of its environment (`appLanguage()`), and `L("…")` everything
+else, the menus and the strings made outside views included. What macOS draws for the app (Quit
+Layland, the Edit menu, the open and save panels) and the layout's direction follow at the next
+launch, which Settings offers to do with the scan kept. The translations are String Catalogs in
+`Layland/Localization`, which Xcode edits too.
+
+```bash
+tools/strings.py sync                 # build, then add the code's new strings to the catalog
+tools/strings.py check                # what each language is missing; release.sh refuses to ship one
+tools/strings.py import fr fr.json    # {key: translation} into the catalog
+```
+
+A count goes into a string as an `Int` (`"\(count) files"` is `%lld files`), so each language gets
+the forms its numbers take; `Format.files(_:)` and its neighbors are the common ones.
+
 ## Why it's fast
 
 `Layland/Core/DiskScanner.swift`:

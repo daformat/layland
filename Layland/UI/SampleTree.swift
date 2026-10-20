@@ -6,7 +6,16 @@ import Foundation
 /// long tail of small files, irregular nesting — but weighted so that even the smallest
 /// category still gets a couple of percent of the area and stays visible.
 enum SampleTree {
-    static let shared: FileTree = build()
+    /// Built again for another language: its folders are named after the palette's slots.
+    @MainActor static var shared: FileTree {
+        let language = AppLocale.shared.locale.identifier
+        if let cached, cached.language == language { return cached.tree }
+        let tree = build()
+        cached = (language, tree)
+        return tree
+    }
+
+    @MainActor private static var cached: (language: String, tree: FileTree)?
 
     private struct Entry {
         var name: String
@@ -27,7 +36,8 @@ enum SampleTree {
     ]
 
     private static func build() -> FileTree {
-        let builder = TreeBuilder(rootPath: "Sample Data")
+        let root = L("Sample Data", comment: "The root of the made-up scan shown while the palette editor is open")
+        let builder = TreeBuilder(rootPath: root)
         var random = SplitMix64(seed: 0x5EED)
 
         let groups: [(String, [UInt8])] = [
@@ -50,7 +60,7 @@ enum SampleTree {
                 populate(builder, folder: folderNodes[folderIndex], slot: slot, budget: budget, depth: 0, random: &random)
             }
         }
-        return builder.finish(rootPath: "Sample Data", hardLinks: [])
+        return builder.finish(rootPath: root, hardLinks: [])
     }
 
     private static let folderNames = ["src", "assets", "cache", "build", "2024", "2025", "archive", "exports", "lib", "tmp", "vendor", "samples"]

@@ -110,7 +110,7 @@ struct ContentView: View {
 
     private var trashTitle: String {
         guard let tree = session.tree, let node = session.pendingTrash else { return "" }
-        return "Move “\(tree.name(node))” to the Trash?"
+        return L("Move “\(tree.name(node))” to the Trash?")
     }
 }
 
@@ -126,7 +126,7 @@ struct WelcomeView: View {
                 .frame(width: 128, height: 128)
                 .accessibilityHidden(true)
             VStack(spacing: 6) {
-                Text("Layland")
+                Text(verbatim: "Layland")
                     .font(.largeTitle.weight(.semibold))
                 Text("See what's taking up space, in seconds.")
                     .foregroundStyle(.secondary)
@@ -202,7 +202,7 @@ struct RecentFoldersButton: View {
             menu.addItem(item)
         }
         menu.addItem(.separator())
-        menu.addItem(ClosureMenuItem(title: "Clear Menu") { session.clearRecentFolders() })
+        menu.addItem(ClosureMenuItem(title: L("Clear Menu", comment: "The last item of the Recent Folders menu")) { session.clearRecentFolders() })
         return menu
     }
 }
@@ -253,14 +253,14 @@ struct ScanningView: View {
     var body: some View {
         VStack(spacing: 20) {
             VStack(spacing: 4) {
-                Text("Scanning \(session.rootPath ?? "")")
+                Text("Scanning \(session.rootPath ?? "")", comment: "The argument is the path of the folder being scanned")
                     .font(.title3.weight(.medium))
                     .lineLimit(1)
                     .truncationMode(.middle)
-                Text("\(Format.count(session.progress.files)) files · \(Format.count(session.progress.directories)) folders · \(Format.bytes(session.progress.logicalBytes))")
+                Text(verbatim: [Format.files(session.progress.files), Format.folders(session.progress.directories), Format.bytes(session.progress.logicalBytes)].joined(separator: " · "))
                     .font(.body.monospacedDigit())
                     .foregroundStyle(.secondary)
-                Text("\(session.progress.fraction.formatted(.percent.precision(.fractionLength(0)))) · \(Format.duration(session.elapsed))")
+                Text(verbatim: "\(Format.progress(session.progress.fraction)) · \(Format.duration(session.elapsed))")
                     .font(.callout.monospacedDigit())
                     .foregroundStyle(.tertiary)
             }
@@ -492,14 +492,14 @@ struct StatusBar: View {
                         .truncationMode(.middle)
                     Spacer(minLength: 8)
                     let size = group.size
-                    Text([Format.bytes(size), Format.percent(size, of: tree[session.zoomRoot].size(session.sizeMode)), "\(Format.count(group.fileCount)) files"].joined(separator: " · "))
+                    Text([Format.bytes(size), Format.percent(size, of: tree[session.zoomRoot].size(session.sizeMode)), Format.files(group.fileCount)].joined(separator: " · "))
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                         .lineLimit(1)
                         .fixedSize()
                 } else if node < 0, let result = session.result {
                     let free = node == TreemapCell.freeSpaceNode
-                    Text(free ? "Free space on the volume" : "Used elsewhere on the volume (system, apps, other users, snapshots…)")
+                    (free ? Text("Free space on the volume") : Text("Used elsewhere on the volume (system, apps, other users, snapshots…)"))
                         .lineLimit(1)
                         .truncationMode(.tail)
                     Spacer(minLength: 8)
@@ -544,7 +544,7 @@ struct StatusBar: View {
             if session.searchIsLocked {
                 Divider().frame(height: 14)
                 Button {
-                    session.requestUnlock("Search needs a license.")
+                    session.requestUnlock(L("Search needs a license."))
                 } label: {
                     Label("Search needs a license", systemImage: "lock.fill")
                 }
@@ -552,7 +552,7 @@ struct StatusBar: View {
                 .fixedSize()
             } else if let matches = session.searchMatches {
                 Divider().frame(height: 14)
-                Text(matches.isEmpty ? "No matches" : "\(Format.count(matches.count)) matches" + (session.searchPosition.map { " · \($0 + 1)" } ?? ""))
+                Text(verbatim: matches.isEmpty ? L("No matches") : Format.matches(matches.count) + (session.searchPosition.map { " · \(Format.count($0 + 1))" } ?? ""))
                     .foregroundStyle(matches.isEmpty ? .secondary : .primary)
                     .monospacedDigit()
                     .fixedSize()
@@ -582,27 +582,29 @@ struct StatusBar: View {
     private func detail(item: FileNode, size: Int64, of total: Int64) -> String {
         var parts = [Format.bytes(size), Format.percent(size, of: total)]
         if item.isDirectory {
-            parts.append("\(Format.count(item.itemCount)) items")
+            parts.append(Format.items(item.itemCount))
         }
         if session.colorMode == .modified, item.modTime > 0 {
-            parts.append("modified " + Date(timeIntervalSince1970: TimeInterval(item.modTime)).formatted(date: .abbreviated, time: .omitted))
+            let date = Format.date(Date(timeIntervalSince1970: TimeInterval(item.modTime)), time: false)
+            parts.append(L("modified \(date)", comment: "Status bar, after an item's size; the argument is a date"))
         }
-        if item.flags.contains(.inaccessible) { parts.append("not readable") }
-        if item.flags.contains(.mountPoint) { parts.append("separate volume, not scanned") }
-        if item.flags.contains(.hardLinkDuplicate) { parts.append("hard link, counted elsewhere") }
-        if item.kind == .symlink { parts.append("symlink") }
+        if item.flags.contains(.inaccessible) { parts.append(L("not readable", comment: "Status bar: Layland wasn't allowed to read this folder")) }
+        if item.flags.contains(.mountPoint) { parts.append(L("separate volume, not scanned", comment: "Status bar: this folder is another disk mounted here")) }
+        if item.flags.contains(.hardLinkDuplicate) { parts.append(L("hard link, counted elsewhere", comment: "Status bar: this file's size is already counted under another of its names")) }
+        if item.kind == .symlink { parts.append(L("symlink", comment: "Status bar: a symbolic link")) }
         return parts.joined(separator: " · ")
     }
 
     private func summary(_ result: ScanResult) -> String {
         let stats = result.statistics
         let total = result.tree[FileTree.rootIndex].size(session.sizeMode)
-        var text = "\(Format.count(stats.files)) files · \(Format.bytes(total)) · \(Format.duration(result.duration))"
-        if result.cancelled { text += " · partial" }
+        var parts = [Format.files(stats.files), Format.bytes(total), Format.duration(result.duration)]
+        if result.cancelled { parts.append(L("partial", comment: "Status bar: the scan was stopped before it finished")) }
         if let loadedFrom = session.loadedFrom {
-            text += " · from \(loadedFrom.lastPathComponent), \(result.date.formatted(date: .abbreviated, time: .shortened))"
+            let date = Format.date(result.date, time: true)
+            parts.append(L("from \(loadedFrom.lastPathComponent), \(date)", comment: "Status bar: the saved scan file shown, and when it was scanned"))
         }
-        return text
+        return parts.joined(separator: " · ")
     }
 }
 
@@ -617,8 +619,8 @@ struct LegendSidebar: View {
         var entries = TreemapPalette.legend(for: session.colorMode)
         let showsVolume = session.showsVolume && !session.isEditingPalette && (session.result?.volumeSize ?? 0) > 0
         if showsVolume {
-            entries.append((TreemapPalette.freeSpaceSlot, "Free space"))
-            entries.append((TreemapPalette.otherSpaceSlot, "Elsewhere on volume"))
+            entries.append((TreemapPalette.freeSpaceSlot, L("Free space", comment: "Legend: the volume's free space")))
+            entries.append((TreemapPalette.otherSpaceSlot, L("Elsewhere on volume", comment: "Legend: space used on the volume outside the scanned folder")))
         }
 
         return ScrollView {
@@ -650,10 +652,10 @@ struct LegendSidebar: View {
 
                 if let result = session.result, !session.isEditingPalette {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Scan")
+                        Text("Scan", comment: "A scan of a folder: the sidebar's heading for its facts, and the name a saved one gets when the folder has none")
                             .font(.headline)
                         fact("Folder", result.tree.rootPath)
-                        fact("Scanned", result.date.formatted(date: .abbreviated, time: .shortened))
+                        fact("Scanned", Format.date(result.date, time: true))
                         fact("Files", Format.count(result.statistics.files))
                         fact("Folders", Format.count(result.statistics.directories))
                         fact("Logical size", Format.bytes(result.tree[FileTree.rootIndex].logicalSize))
@@ -663,7 +665,7 @@ struct LegendSidebar: View {
                             fact("Free", Format.bytes(result.freeSpace))
                         }
                         if result.statistics.permissionDenied > 0 {
-                            fact("Unreadable", "\(Format.count(result.statistics.permissionDenied)) folders")
+                            fact("Unreadable", Format.folders(result.statistics.permissionDenied))
                         }
                         fact("Duration", Format.duration(result.duration))
                     }
@@ -698,7 +700,7 @@ struct LegendSidebar: View {
         }
     }
 
-    private func fact(_ label: String, _ value: String) -> some View {
+    private func fact(_ label: LocalizedStringKey, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(label)
                 .font(.caption)
@@ -718,7 +720,7 @@ struct FullDiskAccessBanner: View {
         HStack(spacing: 12) {
             Image(systemName: "lock.shield")
                 .foregroundStyle(.orange)
-            Text("\(Format.count(session.result?.statistics.permissionDenied ?? 0)) folders couldn't be read. Grant Layland Full Disk Access to include them, then rescan.")
+            Text("\(Int(session.result?.statistics.permissionDenied ?? 0)) folders couldn't be read. Grant Layland Full Disk Access to include them, then rescan.")
                 .lineLimit(2)
             Spacer()
             Button("Open Privacy Settings") { session.openFullDiskAccessSettings() }

@@ -1,5 +1,7 @@
 import SwiftUI
 
+/// The menus' titles go through `L`: a menu has no environment to take the app's language from,
+/// and calling it is what redraws them when the language changes.
 struct LaylandCommands: Commands {
     @Bindable var session: ScanSession
     @Environment(\.openWindow) private var openWindow
@@ -19,85 +21,85 @@ struct LaylandCommands: Commands {
         }
 
         CommandGroup(replacing: .newItem) {
-            Button("New Scan") { inMainWindow { $0.reset() } }
+            Button(L("New Scan")) { inMainWindow { $0.reset() } }
                 .keyboardShortcut("n")
-            Button("Scan Folder…") { inMainWindow { $0.chooseFolder() } }
+            Button(L("Scan Folder…")) { inMainWindow { $0.chooseFolder() } }
                 .keyboardShortcut("o")
-            Button("Scan Home Folder") { inMainWindow { $0.scanHomeFolder() } }
+            Button(L("Scan Home Folder")) { inMainWindow { $0.scanHomeFolder() } }
                 .keyboardShortcut("h", modifiers: [.command, .shift])
-            Button("Scan Startup Disk") { inMainWindow { $0.scanStartupDisk() } }
+            Button(L("Scan Startup Disk")) { inMainWindow { $0.scanStartupDisk() } }
                 .keyboardShortcut("d", modifiers: [.command, .shift])
             Divider()
-            Button("Rescan") { inMainWindow { $0.rescan() } }
+            Button(L("Rescan")) { inMainWindow { $0.rescan() } }
                 .keyboardShortcut("r")
                 .disabled(session.rootPath == nil || session.isScanning)
-            Button("Stop Scan") { session.cancelScan() }
+            Button(L("Stop Scan")) { session.cancelScan() }
                 .keyboardShortcut(".")
                 .disabled(!session.isScanning)
             Divider()
-            Button("Open Scan…") { inMainWindow { $0.openScan() } }
+            Button(L("Open Scan…")) { inMainWindow { $0.openScan() } }
                 .keyboardShortcut("o", modifiers: [.command, .shift])
-            Button("Save Scan…") { session.saveScan() }
+            Button(L("Save Scan…")) { session.saveScan() }
                 .keyboardShortcut("s")
                 .disabled(session.result == nil || session.isScanning)
         }
 
-        CommandMenu("Item") {
-            Button("Quick Look") { session.toggleQuickLook() }
+        CommandMenu(L("Item")) {
+            Button(L("Quick Look")) { session.toggleQuickLook() }
                 .keyboardShortcut("y")
                 .disabled(session.selection == nil || session.isEditingPalette)
-            Button("Reveal in Finder") {
+            Button(L("Reveal in Finder")) {
                 if let node = session.selection { session.revealInFinder(node) }
             }
             .keyboardShortcut(.return)
             .disabled(!session.canRevealSelection)
             // ⌘⌫ here, like Finder; plain ⌫ is handled by the treemap itself so the search field
             // keeps it.
-            Button("Move to Trash") {
+            Button(L("Move to Trash")) {
                 if let node = session.selection { session.requestTrash(node) }
             }
             .keyboardShortcut(.delete)
             .disabled(!session.canTrashSelection)
             Divider()
-            Button("Select Enclosing Folder") { session.selectEnclosingFolder() }
+            Button(L("Select Enclosing Folder")) { session.selectEnclosingFolder() }
                 .keyboardShortcut("[")
                 .disabled(session.selection == nil)
-            Button("Select Largest Item Inside") { session.selectLargestChild() }
+            Button(L("Select Largest Item Inside")) { session.selectLargestChild() }
                 .keyboardShortcut("]")
                 .disabled(session.selection == nil)
             Divider()
-            Button("Next Search Result") { session.selectNextMatch() }
+            Button(L("Next Search Result")) { session.selectNextMatch() }
                 .keyboardShortcut("g")
                 .disabled(session.searchMatches?.isEmpty ?? true)
         }
 
         CommandGroup(after: .toolbar) {
-            Button("Zoom In") { session.zoomIntoSelection() }
+            Button(L("Zoom In")) { session.zoomIntoSelection() }
                 .keyboardShortcut(.downArrow)
                 .disabled(session.selection == nil)
-            Button("Zoom Out") { session.zoomOut() }
+            Button(L("Zoom Out")) { session.zoomOut() }
                 .keyboardShortcut(.upArrow)
                 .disabled(!session.canZoomOut)
             Divider()
-            Picker("Color By", selection: $session.colorMode) {
+            Picker(L("Color By"), selection: $session.colorMode) {
                 ForEach(ColorMode.allCases) { mode in
                     Text(mode.title).tag(mode)
                 }
             }
-            Picker("Group By", selection: $session.groupMode) {
+            Picker(L("Group By"), selection: $session.groupMode) {
                 ForEach(GroupMode.allCases) { mode in
                     Text(mode.title).tag(mode)
                 }
             }
-            Toggle("Show Legend", isOn: $session.showsLegend.animation())
+            Toggle(L("Show Legend"), isOn: $session.showsLegend.animation())
                 .keyboardShortcut("l", modifiers: [.command, .option])
-            Toggle("Show Free Space", isOn: $session.showsVolume)
-            Picker("Size", selection: $session.sizeMode) {
+            Toggle(L("Show Free Space"), isOn: $session.showsVolume)
+            Picker(L("Size"), selection: $session.sizeMode) {
                 ForEach(SizeMode.allCases) { mode in
                     Text(mode.title).tag(mode)
                 }
             }
-            Picker("Color Palette", selection: $session.paletteSelection) {
+            Picker(L("Color Palette"), selection: $session.paletteSelection) {
                 ForEach(PaletteScheme.allCases) { scheme in
                     Text(scheme.title).tag(PaletteSelection.builtIn(scheme))
                 }
@@ -108,18 +110,18 @@ struct LaylandCommands: Commands {
                     }
                 }
                 Divider()
-                Text("Custom").tag(PaletteSelection.custom)
+                Text(L("Custom")).tag(PaletteSelection.custom)
             }
-            Button("Edit Custom Palette…") { openWindow(id: PaletteEditorView.windowID) }
-            Picker("Cushion Strength", selection: $session.cushionStrength) {
+            Button(L("Edit Custom Palette…")) { openWindow(id: PaletteEditorView.windowID) }
+            Picker(L("Cushion Strength"), selection: $session.cushionStrength) {
                 ForEach(CushionStrength.allCases) { strength in
                     Text(strength.title).tag(strength)
                 }
             }
-            Picker("Cell Margin", selection: $session.cellMargin) {
-                Text("None").tag(0)
-                Text("1 pixel").tag(1)
-                Text("2 pixels").tag(2)
+            Picker(L("Cell Margin"), selection: $session.cellMargin) {
+                Text(L("None")).tag(0)
+                Text(L("1 pixel")).tag(1)
+                Text(L("2 pixels")).tag(2)
             }
         }
     }

@@ -26,7 +26,7 @@ enum Entitlement: Equatable, Sendable {
     }
 
     /// The app menu item that opens the license window.
-    var menuTitle: String { isUnlocked ? "Layland License…" : "Unlock Layland…" }
+    var menuTitle: String { isUnlocked ? L("Layland License…") : L("Unlock Layland…") }
 }
 
 struct LicenseRecord: Codable, Equatable, Sendable {

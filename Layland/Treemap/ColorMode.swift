@@ -9,41 +9,40 @@ enum ColorMode: String, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .fileType: "File Type"
-        case .modified: "Last Modified"
+        case .fileType: L("File Type", comment: "View ▸ Color By: color each file by its kind")
+        case .modified: L("Last Modified", comment: "View ▸ Color By: color each file by how long ago it was modified")
         }
     }
 }
 
 /// Age buckets for `ColorMode.modified`, most recent first.
 enum ModifiedBucket {
-    struct Definition: Sendable {
-        var maxAge: TimeInterval
-        var title: String
-    }
-
     private static let day: TimeInterval = 86_400
 
-    static let definitions: [Definition] = [
-        Definition(maxAge: day, title: "Today"),
-        Definition(maxAge: 7 * day, title: "This week"),
-        Definition(maxAge: 30 * day, title: "This month"),
-        Definition(maxAge: 91 * day, title: "3 months"),
-        Definition(maxAge: 182 * day, title: "6 months"),
-        Definition(maxAge: 365 * day, title: "1 year"),
-        Definition(maxAge: 730 * day, title: "2 years"),
-        Definition(maxAge: 1826 * day, title: "5 years"),
-        Definition(maxAge: .infinity, title: "Older"),
-    ]
+    /// Each bucket's upper bound. Read per cell, so it holds numbers only.
+    private static let maxAges: [TimeInterval] = [day, 7 * day, 30 * day, 91 * day, 182 * day, 365 * day, 730 * day, 1826 * day, .infinity]
 
-    static var count: Int { definitions.count }
+    /// The buckets' names, looked up when read so a change of language reaches them.
+    static var titles: [String] { [
+        L("Today", comment: "Legend, coloring by last modified: modified today"),
+        L("This week", comment: "Legend, coloring by last modified: within the last 7 days"),
+        L("This month", comment: "Legend, coloring by last modified: within the last 30 days"),
+        L("3 months", comment: "Legend, coloring by last modified: within the last 3 months"),
+        L("6 months", comment: "Legend, coloring by last modified: within the last 6 months"),
+        L("1 year", comment: "Legend, coloring by last modified: within the last year"),
+        L("2 years", comment: "Legend, coloring by last modified: within the last 2 years"),
+        L("5 years", comment: "Legend, coloring by last modified: within the last 5 years"),
+        L("Older", comment: "Legend, coloring by last modified: more than 5 years ago"),
+    ] }
+
+    static var count: Int { maxAges.count }
 
     /// Bucket index for a modification time (seconds since 1970) relative to `reference`.
     static func index(modTime: UInt32, reference: TimeInterval) -> Int {
         let age = reference - TimeInterval(modTime)
-        for (index, definition) in definitions.enumerated() where age < definition.maxAge {
+        for (index, maxAge) in maxAges.enumerated() where age < maxAge {
             return index
         }
-        return definitions.count - 1
+        return maxAges.count - 1
     }
 }

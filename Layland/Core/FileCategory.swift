@@ -31,10 +31,26 @@ public enum FileCategory {
         return map
     }()
 
-    public static let titles: [String] = [
-        "No extension", "Images", "Video", "Audio", "Archives & disk images", "Documents", "Source code",
-        "Binaries & libraries", "Data", "Fonts", "App resources",
-    ]
+    /// Looked up when read, so a change of language reaches them.
+    public static var titles: [String] { [
+        L("No extension", comment: "Legend: files whose name has no extension"),
+        L("Images", comment: "Legend: a kind of file"),
+        L("Video", comment: "Legend: a kind of file"),
+        L("Audio", comment: "Legend: a kind of file"),
+        L("Archives & disk images", comment: "Legend: a kind of file (zip, dmg)"),
+        L("Documents", comment: "Legend: a kind of file (pdf, docx, txt)"),
+        L("Source code", comment: "Legend: a kind of file"),
+        L("Binaries & libraries", comment: "Legend: a kind of file (executables, dylib)"),
+        L("Data", comment: "Legend: a kind of file (json, csv, sqlite)"),
+        L("Fonts", comment: "Legend: a kind of file"),
+        L("App resources", comment: "Legend: a kind of file (nib, car, strings)"),
+    ] }
+
+    /// How many `titles` there are, without looking them up.
+    public static var titleCount: Int { Int(hashedSlots.lowerBound) }
+
+    /// The family every hashed slot belongs to, in the legend and View ▸ Group By ▸ File Extension.
+    public static var otherTitle: String { L("Other extensions", comment: "Legend: files of every other extension") }
 
     /// Slot for a file name. Works on raw bytes, no allocation.
     public static func slot(forName name: UnsafeBufferPointer<UInt8>) -> UInt8 {

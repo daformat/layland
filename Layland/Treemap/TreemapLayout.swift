@@ -41,10 +41,10 @@ enum CushionStrength: String, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .flat: "Flat"
-        case .subtle: "Subtle"
-        case .normal: "Normal"
-        case .strong: "Strong"
+        case .flat: L("Flat", comment: "View ▸ Cushion Strength: no shading on the cells")
+        case .subtle: L("Subtle", comment: "View ▸ Cushion Strength")
+        case .normal: L("Normal", comment: "View ▸ Cushion Strength")
+        case .strong: L("Strong", comment: "View ▸ Cushion Strength")
         }
     }
 

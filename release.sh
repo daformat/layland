@@ -90,6 +90,11 @@ xcodebuild -scheme Layland -configuration Release -destination "generic/platform
   OTHER_CODE_SIGN_FLAGS="--timestamp" CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO build \
   | grep -E "error|warning: .*Layland|BUILD" || true
 [ -d "$BUILT_APP" ] || { echo "!! build failed" >&2; exit 1; }
+# Every string the code shows, in every language the app says it is in.
+if ! STRINGS_CHECK=$(tools/strings.py check --build Release); then
+  grep -v ": ok$" <<<"$STRINGS_CHECK" | head -30 >&2
+  echo "!! translations incomplete (tools/strings.py check --build Release)" >&2; exit 1
+fi
 rm -rf "$OUT"; mkdir -p "$OUT"
 ditto "$BUILT_APP" "$APP"
 

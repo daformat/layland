@@ -89,6 +89,7 @@ struct LicenseRecordTests {
 
 struct DepthTests {
     @Test("depth counts the levels below the root")
+    @MainActor
     func depth() {
         let tree = SampleTree.shared
         #expect(tree.depth(FileTree.rootIndex) == 0)

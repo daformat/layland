@@ -14,8 +14,8 @@ public enum SizeMode: String, CaseIterable, Sendable, Identifiable {
 
     public var title: String {
         switch self {
-        case .logical: "Logical size"
-        case .allocated: "Size on disk"
+        case .logical: L("Logical size", comment: "The size of a file's contents, as reported")
+        case .allocated: L("Size on disk", comment: "The space a file takes on disk")
         }
     }
 }

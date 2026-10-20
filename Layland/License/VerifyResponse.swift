@@ -31,18 +31,36 @@ enum Revocation: String, Codable, Equatable, Sendable, CaseIterable {
         }
     }
 
-    /// The license window's headline.
-    var headline: String { "This key was \(phrase)" }
+    /// The license window's headline. Whole sentences rather than `phrase` put into one, so
+    /// each language can say each its own way.
+    var headline: String {
+        switch self {
+        case .refunded: L("This key was refunded")
+        case .chargebacked: L("This key was charged back", comment: "The bank reversed the payment for the license")
+        case .disputed: L("This key was disputed", comment: "The buyer disputed the payment for the license with their bank")
+        case .disabled: L("This key was disabled")
+        }
+    }
 
     /// Under that headline.
     var explanation: String {
-        self == .disabled
-            ? "Gumroad reports the key as disabled, so it no longer unlocks Layland. Enter another to carry on."
-            : "Gumroad reports the purchase as \(phrase), so the key no longer unlocks Layland. Enter another to carry on."
+        switch self {
+        case .refunded: L("Gumroad reports the purchase as refunded, so the key no longer unlocks Layland. Enter another to carry on.")
+        case .chargebacked: L("Gumroad reports the purchase as charged back, so the key no longer unlocks Layland. Enter another to carry on.")
+        case .disputed: L("Gumroad reports the purchase as disputed, so the key no longer unlocks Layland. Enter another to carry on.")
+        case .disabled: L("Gumroad reports the key as disabled, so it no longer unlocks Layland. Enter another to carry on.")
+        }
     }
 
     /// When a key just typed in turns out to have been revoked: the key on file is untouched.
-    var refusal: String { "This key was \(phrase) and no longer works. Nothing has changed." }
+    var refusal: String {
+        switch self {
+        case .refunded: L("This key was refunded and no longer works. Nothing has changed.")
+        case .chargebacked: L("This key was charged back and no longer works. Nothing has changed.")
+        case .disputed: L("This key was disputed and no longer works. Nothing has changed.")
+        case .disabled: L("This key was disabled and no longer works. Nothing has changed.")
+        }
+    }
 }
 
 enum VerifyOutcome: Equatable, Sendable {

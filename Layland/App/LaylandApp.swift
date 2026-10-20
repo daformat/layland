@@ -14,26 +14,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
+/// Sets what has to be set before NSApplication starts, then runs the app.
 @main
+enum Main {
+    static func main() {
+        AppLanguage.applyLayoutDirection()
+        LaylandApp.main()
+    }
+}
+
 struct LaylandApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
     @State private var session = ScanSession()
     private let updater = Updater.shared
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     static let mainWindowID = "main"
 
     var body: some Scene {
         // A single Window (not a WindowGroup) so commands can reopen or front it by id after
         // the user closed it.
-        Window("Layland", id: Self.mainWindowID) {
+        // The app's name, the same in every language: a String, so it isn't looked up.
+        Window("Layland" as String, id: Self.mainWindowID) {
             ContentView()
                 .environment(session)
+                .appLanguage()
                 .task {
                     session.openLicenseWindow = { openWindow(id: LicenseView.windowID) }
                     // `open -a Layland --args --scan ~/Downloads` starts scanning immediately;
                     // `--edit-palette` opens the palette editor.
-                    if let path = Self.launchScanPath, session.phase == .idle {
+                    if let path = Self.argument(after: "--scan"), session.phase == .idle {
                         if path.hasSuffix(".\(ScanArchive.fileExtension)") {
                             session.load(url: URL(fileURLWithPath: path))
                         } else {
@@ -43,8 +54,16 @@ struct LaylandApp: App {
                     if CommandLine.arguments.contains("--edit-palette") {
                         openWindow(id: PaletteEditorView.windowID)
                     }
-                    if let index = CommandLine.arguments.firstIndex(of: "--search"), index + 1 < CommandLine.arguments.count {
-                        session.searchText = CommandLine.arguments[index + 1]
+                    if let text = Self.argument(after: "--search") {
+                        session.searchText = text
+                    }
+                    // `--restore` and `--settings` are how a relaunch for a change of language
+                    // (Settings ▸ Language) brings back the scan and the Settings window.
+                    if let path = Self.argument(after: "--restore"), session.phase == .idle {
+                        session.restore(url: URL(fileURLWithPath: path))
+                    }
+                    if CommandLine.arguments.contains("--settings") {
+                        openSettings()
                     }
                     appDelegate.openURL = { url in
                         openWindow(id: Self.mainWindowID)
@@ -60,6 +79,8 @@ struct LaylandApp: App {
         Window("Layland License", id: LicenseView.windowID) {
             LicenseView()
                 .environment(session)
+                .navigationTitle(L("Layland License"))
+                .appLanguage()
         }
         .windowResizability(.contentSize)
         .defaultPosition(.center)
@@ -67,13 +88,21 @@ struct LaylandApp: App {
         Window("Custom Palette", id: PaletteEditorView.windowID) {
             PaletteEditorView()
                 .environment(session)
+                .navigationTitle(L("Custom Palette"))
+                .appLanguage()
         }
         .defaultSize(width: 380, height: 700)
+
+        Settings {
+            SettingsView()
+                .environment(session)
+                .appLanguage()
+        }
     }
 
-    private static var launchScanPath: String? {
+    private static func argument(after flag: String) -> String? {
         let arguments = CommandLine.arguments
-        guard let index = arguments.firstIndex(of: "--scan"), index + 1 < arguments.count else { return nil }
+        guard let index = arguments.firstIndex(of: flag), index + 1 < arguments.count else { return nil }
         return arguments[index + 1]
     }
 }

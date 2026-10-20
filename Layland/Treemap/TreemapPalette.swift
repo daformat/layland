@@ -11,11 +11,11 @@ enum PaletteScheme: String, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .vivid: "Vivid"
-        case .pastel: "Pastel"
+        case .vivid: L("Vivid", comment: "View ▸ Color Palette: a set of bright colors")
+        case .pastel: L("Pastel", comment: "View ▸ Color Palette: a set of soft colors")
         case .nord: "Nord"
-        case .retro: "Retro"
-        case .jewel: "Jewel"
+        case .retro: L("Retro", comment: "View ▸ Color Palette: a set of muted, vintage colors")
+        case .jewel: L("Jewel", comment: "View ▸ Color Palette: a set of jewel-tone colors")
         }
     }
 }
@@ -117,16 +117,16 @@ struct TreemapPalette: Sendable {
     ]
 
     /// Human-readable name per slot, for the palette editor.
-    static let slotTitles: [String] = FileCategory.titles + (1 ... FileCategory.hashedSlots.count).map { "Other extensions \($0)" }
+    static var slotTitles: [String] { FileCategory.titles + (1 ... FileCategory.hashedSlots.count).map { L("Other extensions \($0)", comment: "Palette editor: one of several colors shared by the less common extensions, numbered") } }
 
     /// Legend entries for a mode: (slot, title). File-type mode folds the hashed slots into one.
     static func legend(for mode: ColorMode) -> [(slot: Int32, title: String)] {
         switch mode {
         case .fileType:
             FileCategory.titles.enumerated().map { (Int32($0.offset), $0.element) }
-                + [(Int32(FileCategory.hashedSlots.lowerBound), "Other extensions")]
+                + [(Int32(FileCategory.hashedSlots.lowerBound), FileCategory.otherTitle)]
         case .modified:
-            ModifiedBucket.definitions.enumerated().map { (Int32($0.offset), $0.element.title) }
+            ModifiedBucket.titles.enumerated().map { (Int32($0.offset), $0.element) }
         }
     }
 

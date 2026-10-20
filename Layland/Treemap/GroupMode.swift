@@ -11,8 +11,8 @@ enum GroupMode: String, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .folder: "Folder"
-        case .fileExtension: "File Extension"
+        case .folder: L("Folder", comment: "View ▸ Group By: nest the map by folder, as on disk")
+        case .fileExtension: L("File Extension", comment: "View ▸ Group By: gather files by their extension (.jpg, .pdf)")
         }
     }
 }
@@ -24,14 +24,20 @@ enum GroupMode: String, CaseIterable, Identifiable, Sendable {
 /// refer to them with pseudo node indices (`node(for:)`).
 struct ExtensionGroups: Sendable {
     struct Group: Sendable {
-        /// The family's name, or the extension with its dot (".jpg").
-        var title: String
+        /// The extension with its dot (".jpg"), or nil for a family, whose name is looked up
+        /// when shown (`title`) so it is in the app's language of that moment.
+        var fileExtension: String?
+        /// The family (`ExtensionIndex.familyTitle(_:)`).
+        var family: Int
         /// Index of the enclosing family, or nil for a family.
         var parent: Int?
         var size: Int64
         var fileCount: Int
         /// Extension groups' pseudo nodes (in a family) or file indices, largest first.
         var members: [Int32]
+
+        /// The family's name, or the extension with its dot.
+        var title: String { fileExtension ?? ExtensionIndex.familyTitle(family) }
     }
 
     /// What the status bar shows for a hovered group.
@@ -69,7 +75,7 @@ struct ExtensionGroups: Sendable {
         let first = index.preorder[Int(root)]
         guard first >= 0 else { return }
         let end = index.subtreeEnd[Int(root)]
-        var groupOfFamily = [Int](repeating: -1, count: index.familyTitles.count)
+        var groupOfFamily = [Int](repeating: -1, count: ExtensionIndex.familyCount)
         var groupOfExtension = [Int](repeating: -1, count: index.extensionTitles.count)
         var groups: [Group] = []
 
@@ -84,7 +90,7 @@ struct ExtensionGroups: Sendable {
                     if family < 0 {
                         family = groups.count
                         groupOfFamily[Int(file.family)] = family
-                        groups.append(Group(title: index.familyTitles[Int(file.family)], parent: nil, size: 0, fileCount: 0, members: []))
+                        groups.append(Group(fileExtension: nil, family: Int(file.family), parent: nil, size: 0, fileCount: 0, members: []))
                     }
                     groups[family].size += size
                     groups[family].fileCount += 1
@@ -96,7 +102,7 @@ struct ExtensionGroups: Sendable {
                     if group < 0 {
                         group = groups.count
                         groupOfExtension[Int(file.fileExtension)] = group
-                        groups.append(Group(title: index.extensionTitles[Int(file.fileExtension)], parent: family, size: 0, fileCount: 0, members: []))
+                        groups.append(Group(fileExtension: index.extensionTitles[Int(file.fileExtension)], family: Int(file.family), parent: family, size: 0, fileCount: 0, members: []))
                         groups[family].members.append(Self.node(for: group))
                     }
                     groups[group].size += size
@@ -152,7 +158,7 @@ struct ExtensionIndex: Sendable {
         /// Index into `extensionTitles`, or -1 for files without an extension.
         var fileExtension: Int32
         var size: UInt64
-        /// Index into `familyTitles`.
+        /// The family: a `FileCategory` title, or past them, every other extension.
         var family: UInt8
     }
 
@@ -162,8 +168,13 @@ struct ExtensionIndex: Sendable {
     let preorder: [Int32]
     /// Per node: the preorder position just past its last descendant.
     let subtreeEnd: [Int32]
-    let familyTitles: [String]
     let extensionTitles: [String]
+
+    static var familyCount: Int { FileCategory.titleCount + 1 }
+
+    static func familyTitle(_ family: Int) -> String {
+        family < FileCategory.titleCount ? FileCategory.titles[family] : FileCategory.otherTitle
+    }
     private let sizeMode: SizeMode
     private let tree: FileTree
 
@@ -173,7 +184,6 @@ struct ExtensionIndex: Sendable {
         self.tree = tree
         self.sizeMode = sizeMode
         let otherSlot = Int(FileCategory.hashedSlots.lowerBound)
-        familyTitles = FileCategory.titles + ["Other extensions"]
         var extensionOfHash: [UInt32: Int32] = [:]
         var extensionTitles: [String] = []
         var files: [File] = []

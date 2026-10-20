@@ -71,9 +71,9 @@ public enum ScanError: Error, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case let .cannotOpen(path, code): "Cannot open \(path): \(String(cString: strerror(code)))"
-        case let .notADirectory(path): "\(path) is not a directory"
-        case .alreadyStarted: "This scanner has already been run"
+        case let .cannotOpen(path, code): L("Cannot open \(path): \(String(cString: strerror(code)))", comment: "The arguments are a path and the system's reason, in English")
+        case let .notADirectory(path): L("\(path) is not a folder.")
+        case .alreadyStarted: L("This scanner has already been run.")
         }
     }
 }

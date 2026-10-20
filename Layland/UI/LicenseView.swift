@@ -18,6 +18,9 @@ struct LicenseView: View {
 
     private var licensing: Licensing { session.licensing }
 
+    /// The key field's placeholder: the shape of a key, the same in every language.
+    private static let keyPlaceholder = "XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX"
+
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 14) {
@@ -46,19 +49,22 @@ struct LicenseView: View {
 
     private var headline: String {
         switch licensing.entitlement {
-        case .licensed, .provisional: "Layland is unlocked"
+        case .licensed, .provisional: L("Layland is unlocked")
         case let .revoked(why): why.headline
-        case .free: "Unlock Layland"
+        case .free: L("Unlock Layland")
         }
     }
 
     private var subheadline: String {
         switch licensing.entitlement {
-        case let .licensed(email): email.map { "Licensed to \($0). Thank you!" } ?? "Licensed. Thank you!"
+        case let .licensed(email):
+            email.map { L("Licensed to \($0). Thank you!", comment: "The argument is the buyer's email address") }
+                ?? L("Licensed. Thank you!")
         case let .provisional(until):
-            "Gumroad couldn't be reached, so the key works until \(until.formatted(date: .abbreviated, time: .shortened)) and will be checked when you're online."
+            L("Gumroad couldn't be reached, so the key works until \(Format.date(until, time: true)) and will be checked when you're online.",
+                   comment: "The argument is a date and time")
         case let .revoked(why): why.explanation
-        case .free: session.unlockReason ?? "See everything, however deep it's buried."
+        case .free: session.unlockReason ?? L("See everything, however deep it's buried.")
         }
     }
 
@@ -92,7 +98,7 @@ struct LicenseView: View {
                 Text("Already bought it? Enter your license key:")
                     .font(.callout)
                 HStack {
-                    TextField("XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX", text: $keyText)
+                    TextField(Self.keyPlaceholder, text: $keyText)
                         .textFieldStyle(.roundedBorder)
                         .font(.body.monospaced())
                         .onSubmit(activate)
@@ -111,7 +117,7 @@ struct LicenseView: View {
         }
     }
 
-    private func feature(_ symbol: String, _ text: String) -> some View {
+    private func feature(_ symbol: String, _ text: LocalizedStringKey) -> some View {
         Label {
             Text(text).fixedSize(horizontal: false, vertical: true)
         } icon: {
@@ -143,7 +149,7 @@ struct LicenseView: View {
     private func activate() {
         guard status != .checking else { return }
         guard LicenseKey(parsing: keyText) != nil else {
-            status = .message("That doesn't look like a license key. It has 32 letters and digits, in four groups.", isError: true)
+            status = .message(L("That doesn't look like a license key. It has 32 letters and digits, in four groups."), isError: true)
             return
         }
         status = .checking
@@ -153,13 +159,13 @@ struct LicenseView: View {
                 keyText = ""
                 status = .idle
             case .notAKey:
-                status = .message("That doesn't look like a license key.", isError: true)
+                status = .message(L("That doesn't look like a license key."), isError: true)
             case let .revoked(why):
                 status = .message(why.refusal, isError: true)
             case let .invalid(message):
-                status = .message(message ?? "Gumroad doesn't recognize this key.", isError: true)
+                status = .message(message ?? L("Gumroad doesn't recognize this key."), isError: true)
             case let .unreachable(message):
-                status = .message("Gumroad couldn't be reached: \(message)", isError: true)
+                status = .message(L("Gumroad couldn't be reached: \(message)", comment: "The argument is the reason, from the system"), isError: true)
             }
         }
     }

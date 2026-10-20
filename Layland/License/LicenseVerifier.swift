@@ -38,7 +38,7 @@ struct LicenseVerifier: Sendable {
             if outcome == .malformed {
                 // A captive portal or a proxy's error page: that is no answer.
                 let code = (response as? HTTPURLResponse)?.statusCode ?? 0
-                return .unreachable("Gumroad gave an answer that couldn't be read (HTTP \(code)).")
+                return .unreachable(L("Gumroad gave an answer that couldn't be read (HTTP \(code)).", comment: "The argument is an HTTP status code"))
             }
             return .answered(outcome)
         } catch {

@@ -47,7 +47,7 @@ struct PaletteEditorView: View {
                 VStack(spacing: 0) {
                     ForEach(0 ..< TreemapPalette.fileSlotCount, id: \.self) { slot in
                         row(slot: slot)
-                        if slot == FileCategory.titles.count - 1 {
+                        if slot == FileCategory.titleCount - 1 {
                             Divider().padding(.vertical, 6)
                         }
                     }

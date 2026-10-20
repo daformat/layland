@@ -32,10 +32,10 @@ public enum ScanArchive {
 
         public var errorDescription: String? {
             switch self {
-            case .notAnArchive: "This is not a Layland scan file."
-            case let .unsupportedVersion(version): "This scan was saved by a newer Layland (format \(version))."
-            case .corrupt: "The scan file is damaged."
-            case let .unsupportedCompression(name): "This scan uses unsupported compression (\(name))."
+            case .notAnArchive: L("This is not a Layland scan file.")
+            case let .unsupportedVersion(version): L("This scan was saved by a newer Layland (format \(version)).", comment: "The argument is a file format's version number")
+            case .corrupt: L("The scan file is damaged.")
+            case let .unsupportedCompression(name): L("This scan uses unsupported compression (\(name)).", comment: "The argument is the name of a compression method, like lzfse")
             }
         }
     }

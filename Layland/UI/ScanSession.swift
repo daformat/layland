@@ -164,7 +164,7 @@ final class ScanSession {
     /// Selects the next match (wrapping), zooming out to the scan root if it is not in view.
     func selectNextMatch() {
         if searchIsLocked {
-            requestUnlock("Search needs a license.")
+            requestUnlock(L("Search needs a license."))
             return
         }
         guard let searchMatches, !searchMatches.isEmpty, let tree = displayedTree else { return }
@@ -207,8 +207,8 @@ final class ScanSession {
     func title(for selection: PaletteSelection) -> String {
         switch selection {
         case let .builtIn(scheme): scheme.title
-        case let .user(id): userPalettes.first { $0.id == id }?.name ?? "Deleted preset"
-        case .custom: "Custom"
+        case let .user(id): userPalettes.first { $0.id == id }?.name ?? L("Deleted preset", comment: "Stands for a saved color palette that no longer exists")
+        case .custom: L("Custom", comment: "The color palette being edited in the palette editor")
         }
     }
 
@@ -327,14 +327,14 @@ final class ScanSession {
     func saveScan() {
         guard let result else { return }
         guard licensing.isUnlocked else {
-            requestUnlock("Saving scans needs a license.")
+            requestUnlock(L("Saving scans needs a license."))
             return
         }
         Task {
             let panel = NSSavePanel()
             panel.allowedContentTypes = [UTType(exportedAs: ScanArchive.typeIdentifier)]
             panel.nameFieldStringValue = (result.tree.rootPath as NSString).lastPathComponent.isEmpty
-                ? "Scan.\(ScanArchive.fileExtension)"
+                ? L("Scan", comment: "A scan of a folder: the sidebar's heading for its facts, and the name a saved one gets when the folder has none") + ".\(ScanArchive.fileExtension)"
                 : "\((result.tree.rootPath as NSString).lastPathComponent).\(ScanArchive.fileExtension)"
             panel.canCreateDirectories = true
             guard await panel.begin() == .OK, let url = panel.url else { return }
@@ -349,7 +349,7 @@ final class ScanSession {
 
     func openScan() {
         guard licensing.isUnlocked else {
-            requestUnlock("Opening saved scans needs a license.")
+            requestUnlock(L("Opening saved scans needs a license."))
             return
         }
         Task {
@@ -357,7 +357,7 @@ final class ScanSession {
             panel.allowedContentTypes = [UTType(exportedAs: ScanArchive.typeIdentifier)]
             panel.canChooseDirectories = false
             panel.allowsMultipleSelection = false
-            panel.prompt = "Open"
+            panel.prompt = L("Open", comment: "The button of the panel that opens a saved scan")
             guard await panel.begin() == .OK, let url = panel.url else { return }
             load(url: url)
         }
@@ -366,10 +366,63 @@ final class ScanSession {
     /// Shows a scan saved with `saveScan()`.
     func load(url: URL) {
         guard licensing.isUnlocked else {
-            requestUnlock("Opening saved scans needs a license.")
+            requestUnlock(L("Opening saved scans needs a license."))
             return
         }
+        read(url) { [weak self] in
+            self?.loadedFrom = url
+            self?.showsFullDiskAccessHint = false
+        }
+    }
+
+    // MARK: Relaunching
+
+    /// Where `relaunch` sets the scan aside for the next copy of the app.
+    private static let relaunchFolder = FileManager.default.temporaryDirectory.appending(path: "Relaunch", directoryHint: .isDirectory)
+
+    /// Quits and opens Layland again (Settings ▸ Language), bringing back what the window
+    /// showed: a scan, set aside in a temporary file or reopened from the one it came from,
+    /// or the folder being scanned, scanned again from the start.
+    func relaunch() {
+        Task {
+            var arguments: [String] = []
+            if phase == .scanning, scanner != nil, let rootPath {
+                arguments = ["--scan", rootPath]
+            } else if let result {
+                if let loadedFrom, licensing.isUnlocked, FileManager.default.fileExists(atPath: loadedFrom.path) {
+                    arguments = ["--scan", loadedFrom.path]
+                } else {
+                    let folder = Self.relaunchFolder
+                    let url = folder.appending(path: "\(UUID().uuidString).\(ScanArchive.fileExtension)")
+                    do {
+                        try await Task.detached(priority: .userInitiated) {
+                            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                            try ScanArchive.write(result, to: url)
+                        }.value
+                        arguments = ["--restore", url.path]
+                    } catch {
+                        // Relaunch without it rather than not at all: the scan can be redone.
+                    }
+                }
+            }
+            AppLanguage.relaunch(arguments: arguments + ["--settings"])
+        }
+    }
+
+    /// Shows the scan `relaunch` set aside, and deletes it. Whatever the license: this is the
+    /// scan the window showed a moment ago, not a saved one, so only files in the folder
+    /// `relaunch` writes to are taken.
+    func restore(url: URL) {
+        guard url.deletingLastPathComponent().standardizedFileURL.path == Self.relaunchFolder.standardizedFileURL.path else { return }
+        read(url) {
+            try? FileManager.default.removeItem(at: url)
+        }
+    }
+
+    private func read(_ url: URL, then done: @escaping @MainActor () -> Void) {
         scanner?.cancel()
+        // Nothing is being scanned from here on (`relaunch` asks).
+        scanner = nil
         scanTask?.cancel()
         progressTask?.cancel()
         stopPreparingMap()
@@ -386,10 +439,10 @@ final class ScanSession {
                 guard let self else { return }
                 rootPath = result.tree.rootPath
                 finish(result)
-                loadedFrom = url
-                showsFullDiskAccessHint = false
+                done()
             } catch {
                 self?.phase = .failed(error.localizedDescription)
+                done()
             }
         }
     }
@@ -445,8 +498,10 @@ final class ScanSession {
             panel.allowsMultipleSelection = false
             panel.showsHiddenFiles = true
             panel.treatsFilePackagesAsDirectories = true
-            panel.prompt = "Scan"
-            panel.message = "Choose a folder to scan"
+            panel.prompt = String(localized: LocalizedStringResource(
+                "panel.scan", defaultValue: "Scan", locale: AppLocale.shared.locale,
+                comment: "The button of the panel that chooses a folder to scan: a verb"))
+            panel.message = L("Choose a folder to scan")
             panel.directoryURL = URL(fileURLWithPath: NSHomeDirectory())
             if await panel.begin() == .OK, let url = panel.url {
                 scan(path: url.path)
@@ -506,7 +561,7 @@ final class ScanSession {
         return selection >= 0 && !isEditingPalette
     }
 
-    static let lockedItemReason = "File names, and folders more than \(freeDepth) levels deep, need a license."
+    static var lockedItemReason: String { L("File names, and folders more than \(freeDepth) levels deep, need a license.") }
 
     func revealInFinder(_ node: Int32) {
         guard let tree, !isEditingPalette else { return }
@@ -590,7 +645,7 @@ final class ScanSession {
     /// Saves the working palette under `name` and selects it.
     func saveUserPalette(named name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let palette = UserPalette(id: UUID(), name: trimmed.isEmpty ? "Untitled" : trimmed, colors: customColors)
+        let palette = UserPalette(id: UUID(), name: trimmed.isEmpty ? L("Untitled", comment: "Name of a saved color palette given no name") : trimmed, colors: customColors)
         userPalettes.append(palette)
         paletteSelection = .user(palette.id)
     }
